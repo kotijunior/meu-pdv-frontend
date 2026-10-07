@@ -343,32 +343,53 @@
             } catch (err) { alert("Erro ao finalizar."); }
         }
 
-        // --- NOVA FUNÇÃO DE RECIBO ---
+        // --- NOVA FUNÇÃO DE RECIBO (NOVO SEPARADOR) ---
         function imprimirRecibo(itens, total, pagamento) {
             const dataAtual = new Date().toLocaleString('pt-BR');
             const traduzPagamento = { 'pix': 'PIX', 'credit': 'Cartão de Crédito', 'cash': 'Dinheiro' };
             
             let htmlRecibo = `
-            <html>
+            <!DOCTYPE html>
+            <html lang="pt-BR">
             <head>
-                <title>Recibo - MeuPDV</title>
+                <title>Comprovativo de Venda - MeuPDV</title>
                 <style>
-                    body { font-family: monospace; width: 300px; margin: 0 auto; font-size: 12px; color: #000; }
+                    /* Estilos para a visualização no ecrã (Navegador) */
+                    body { font-family: monospace; background-color: #f3f4f6; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+                    .recibo-container { background-color: #fff; width: 320px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 1px solid #ddd; }
                     .header, .footer { text-align: center; margin-bottom: 10px; }
-                    .item { display: flex; justify-content: space-between; margin-bottom: 5px; }
+                    .item { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; }
                     .divisor { border-top: 1px dashed #000; margin: 10px 0; }
-                    .total { font-size: 14px; font-weight: bold; text-align: right; }
+                    .total { font-size: 15px; font-weight: bold; text-align: right; }
+                    
+                    /* Estilos do Botão */
+                    .acoes { margin-bottom: 20px; text-align: center; }
+                    button { background-color: #2563eb; color: white; border: none; padding: 12px 24px; font-size: 16px; cursor: pointer; border-radius: 6px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+                    button:hover { background-color: #1d4ed8; }
+                    
+                    /* MÁGICA: Esconde os botões e fundos na hora de imprimir no papel */
+                    @media print {
+                        body { background-color: #fff; padding: 0; align-items: flex-start; }
+                        .recibo-container { box-shadow: none; border: none; width: 100%; max-width: 300px; padding: 0; }
+                        .no-print { display: none !important; }
+                    }
                 </style>
             </head>
             <body>
-                <div class="header">
-                    <h2>🚀 MeuPDV SaaS</h2>
-                    <p>Recibo Não Fiscal</p>
-                    <p>${dataAtual}</p>
+                <div class="acoes no-print">
+                    <button onclick="window.print()">🖨️ Imprimir Talão</button>
+                    <p style="font-family: sans-serif; font-size: 12px; color: #666; margin-top: 10px;">Dica: Guarde como PDF na opção de destino da impressora.</p>
                 </div>
-                <div class="divisor"></div>
-                <div><strong>Qtd | Item | Subtotal</strong></div>
-                <div class="divisor"></div>
+                
+                <div class="recibo-container">
+                    <div class="header">
+                        <h2>🚀 MeuPDV SaaS</h2>
+                        <p>Recibo Não Fiscal</p>
+                        <p>${dataAtual}</p>
+                    </div>
+                    <div class="divisor"></div>
+                    <div style="font-size: 13px; font-weight: bold;">Qtd | Item <span style="float:right;">Subtotal</span></div>
+                    <div class="divisor"></div>
             `;
             
             itens.forEach(item => {
@@ -376,22 +397,20 @@
             });
             
             htmlRecibo += `
-                <div class="divisor"></div>
-                <div class="total">TOTAL: R$ ${total.toFixed(2)}</div>
-                <p>Pagamento: ${traduzPagamento[pagamento]}</p>
-                <div class="divisor"></div>
-                <div class="footer">Obrigado pela preferência!</div>
+                    <div class="divisor"></div>
+                    <div class="total">TOTAL: R$ ${total.toFixed(2)}</div>
+                    <p style="font-size: 13px;">Pagamento: ${traduzPagamento[pagamento]}</p>
+                    <div class="divisor"></div>
+                    <div class="footer" style="font-size: 13px;">Obrigado pela preferência!</div>
+                </div>
             </body>
             </html>
             `;
             
-            // Abre uma janela invisível, injeta o recibo e aciona a impressora
-            const janela = window.open('', '', 'width=350,height=500');
+            // Abre o recibo num novo separador e aguarda a ação do utilizador
+            const janela = window.open('', '_blank');
             janela.document.write(htmlRecibo);
             janela.document.close();
-            janela.focus();
-            janela.print();
-            janela.close();
         }
 
         // 4. LÓGICA DO CAIXA
