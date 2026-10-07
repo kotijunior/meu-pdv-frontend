@@ -175,22 +175,39 @@
 
             <!-- ABA 3: CAIXA -->
             <div id="aba-caixa" class="tab-pane hidden">
-                <div class="bg-white p-6 md:p-8 rounded-lg shadow-md w-full max-w-md mx-auto">
-                    <h1 class="text-2xl font-bold mb-6 text-gray-800 text-center">💵 Gestão de Turno</h1>
-                    <div class="space-y-6">
-                        <div class="border-b pb-4">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-2">1. Abertura de Caixa</h2>
-                            <input type="number" step="0.01" id="openingBalance" class="w-full border rounded p-3 mb-3 text-lg" placeholder="Fundo de troco">
-                            <button onclick="abrirCaixa()" class="w-full bg-green-600 text-white font-bold py-3 rounded shadow-md">Abrir Turno</button>
+                <div class="bg-white p-6 md:p-8 rounded-lg shadow-md w-full max-w-lg mx-auto">
+                    <h1 class="text-2xl font-bold mb-6 text-gray-800 text-center">💵 Gestão de Caixa</h1>
+                    
+                    <!-- ESTADO 1: CAIXA FECHADO (Formulário de Abertura) -->
+                    <div id="painelCaixaFechado">
+                        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4 text-yellow-700 text-sm">
+                            ⚠️ O caixa encontra-se encerrado. Informe o fundo de troco inicial para iniciar as operações.
                         </div>
-                        <div>
-                            <h2 class="text-lg font-semibold text-gray-700 mb-2">2. Fechamento de Caixa</h2>
-                            <input type="text" id="registerId" class="w-full border rounded p-3 mb-3 text-lg" placeholder="ID do Caixa (UUID)">
-                            <input type="number" step="0.01" id="closingBalance" class="w-full border rounded p-3 mb-3 text-lg" placeholder="Total na gaveta">
-                            <button onclick="fecharCaixa()" class="w-full bg-red-600 text-white font-bold py-3 rounded shadow-md">Fechar Turno</button>
-                        </div>
+                        <form id="formAbrirCaixa" class="space-y-4">
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-1">Fundo de Troco Inicial (R$)</label>
+                                <input type="number" step="0.01" id="opening_balance" required class="w-full border rounded p-2 focus:border-blue-500" placeholder="0.00">
+                            </div>
+                            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded shadow-md transition-colors">🔓 Abrir Caixa</button>
+                        </form>
                     </div>
-                    <div id="mensagemCaixa" class="mt-4 text-center font-medium text-sm"></div>
+
+                    <!-- ESTADO 2: CAIXA ABERTO (Painel de Controlo e Fechamento) -->
+                    <div id="painelCaixaAberto" class="hidden space-y-4">
+                        <div class="bg-green-50 border-l-4 border-green-500 p-4 text-green-700 text-sm">
+                            ✅ Caixa Aberto! Turno em andamento.
+                            <div class="mt-1 font-semibold" id="infoCaixaAberto"></div>
+                        </div>
+                        <form id="formFecharCaixa" class="space-y-4 mt-4">
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-1">Valor Total Apurado na Gaveta (R$)</label>
+                                <input type="number" step="0.01" id="closing_balance" required class="w-full border rounded p-2 focus:border-blue-500" placeholder="0.00">
+                            </div>
+                            <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded shadow-md transition-colors">🔒 Fechar Caixa e Encerrar Turno</button>
+                        </form>
+                    </div>
+
+                    <div id="mensagemCaixa" class="mt-4 text-center font-medium"></div>
                 </div>
             </div>
 
@@ -638,6 +655,84 @@
             
             imprimirRecibo(venda.items, parseFloat(venda.total_amount), venda.payment_method);
         }
+
+	// --- GESTÃO DE CAIXA ---
+        let caixaAtualId = localStorage.getItem('pdv_caixa_id') || null;
+
+        // Verifica o estado do caixa ao carregar a página
+        window.addEventListener('DOMContentLoaded', () => {
+            verificarEstadoCaixaUI();
+        });
+
+        function verificarEstadoCaixaUI() {
+            const painelFechado = document.getElementById('painelCaixaFechado');
+            const painelAberto = document.getElementById('painelCaixaAberto');
+            
+            if (caixaAtualId) {
+                painelFechado.classList.add('hidden');
+                painelAberto.classList.remove('hidden');
+                document.getElementById('infoCaixaAberto').innerText = `ID do Turno: ${caixaAtualId.substring(0,8)}...`;
+            } else {
+                painelFechado.classList.remove('hidden');
+                painelAberto.classList.add('hidden');
+            }
+        }
+
+        // Abertura de Caixa
+        document.getElementById('formAbrirCaixa').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const opening_balance = parseFloat(document.getElementById('opening_balance').value);
+
+            try {
+                const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/cash/open', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ opening_balance })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    caixaAtualId = data.cashRegister.id;
+                    localStorage.setItem('pdv_caixa_id', caixaAtualId);
+                    verificarEstadoCaixaUI();
+                    mostrarToast("Caixa aberto com sucesso!", "sucesso");
+                    document.getElementById('formAbrirCaixa').reset();
+                } else {
+                    mostrarToast(data.error || "Erro ao abrir caixa", "erro");
+                }
+            } catch (err) {
+                mostrarToast("Erro de conexão ao abrir caixa.", "erro");
+            }
+        });
+
+        // Fechamento de Caixa
+        document.getElementById('formFecharCaixa').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const closing_balance = parseFloat(document.getElementById('closing_balance').value);
+
+            if (!caixaAtualId) return mostrarToast("Nenhum caixa aberto encontrado.", "erro");
+
+            try {
+                const res = await fetch(`https://meu-pdv-backend-ruvs.onrender.com/api/cash/close/${caixaAtualId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ closing_balance })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    mostrarToast("Caixa fechado com sucesso!", "sucesso");
+                    localStorage.removeItem('pdv_caixa_id');
+                    caixaAtualId = null;
+                    verificarEstadoCaixaUI();
+                    document.getElementById('formFecharCaixa').reset();
+                } else {
+                    mostrarToast(data.error || "Erro ao fechar caixa", "erro");
+                }
+            } catch (err) {
+                mostrarToast("Erro de conexão ao fechar caixa.", "erro");
+            }
+        });
 
     </script>
 </body>
