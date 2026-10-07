@@ -88,9 +88,30 @@
                                 <input type="text" id="category" class="w-full border rounded p-2 focus:border-blue-500">
                             </div>
                         </div>
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded mt-4">Salvar no Banco</button>
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded mt-4 shadow-md transition-colors">Salvar no Banco</button>
                     </form>
                     <div id="mensagemProduto" class="mt-4 text-center font-medium"></div>
+                </div>
+
+                <!-- NOVO: Tabela de Inventário -->
+                <div class="bg-white p-6 md:p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto mt-8 mb-8">
+                    <h2 class="text-xl font-bold mb-4 text-gray-800">📋 Inventário Atual</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[600px]">
+                            <thead>
+                                <tr class="bg-gray-100 border-b text-gray-700">
+                                    <th class="p-3 rounded-tl-lg">Cód. Barras</th>
+                                    <th class="p-3">Nome do Produto</th>
+                                    <th class="p-3">Stock</th>
+                                    <th class="p-3">Preço de Venda</th>
+                                    <th class="p-3 text-center rounded-tr-lg">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaProdutos" class="text-gray-600">
+                                <!-- Os produtos aparecerão aqui magicamente -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -270,10 +291,12 @@
             document.getElementById(tabId).classList.remove('hidden');
             btnElement.classList.remove('text-gray-300', 'hover:text-white');
             btnElement.classList.add('bg-blue-600', 'text-white');
+            
             if (tabId === 'aba-relatorios') carregarRelatorio();
+            if (tabId === 'aba-produtos') carregarProdutos(); // Atualiza a tabela sempre que abrir a aba
         }
 
-        // 2. PRODUTOS
+        // 2. PRODUTOS E INVENTÁRIO
         document.getElementById('productForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const payload = {
@@ -287,12 +310,62 @@
             try {
                 const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                 if (res.ok) {
-                    document.getElementById('mensagemProduto').className = "mt-4 text-green-600 text-center";
-                    document.getElementById('mensagemProduto').innerText = "✅ Cadastrado com sucesso!";
+                    const msg = document.getElementById('mensagemProduto');
+                    msg.className = "mt-4 text-green-600 text-center font-bold";
+                    msg.innerText = "✅ Cadastrado com sucesso!";
                     document.getElementById('productForm').reset();
+                    carregarProdutos(); // Insere o produto na tabela instantaneamente
+                    setTimeout(() => msg.innerText = '', 3000); // Limpa a mensagem após 3 seg
                 }
             } catch (err) { alert("Erro de conexão."); }
         });
+
+        async function carregarProdutos() {
+            try {
+                const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/products');
+                const produtos = await res.json();
+                const tbody = document.getElementById('tabelaProdutos');
+                tbody.innerHTML = '';
+                
+                if(produtos.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-500">Nenhum produto cadastrado ainda.</td></tr>';
+                    return;
+                }
+
+                produtos.forEach(p => {
+                    tbody.innerHTML += `
+                        <tr class="border-b hover:bg-gray-50 transition-colors">
+                            <td class="p-3 text-sm">${p.barcode || '-'}</td>
+                            <td class="p-3 font-medium text-gray-800">${p.name}</td>
+                            <td class="p-3">${p.stock_quantity}</td>
+                            <td class="p-3 font-bold text-blue-600">R$ ${parseFloat(p.sale_price).toFixed(2)}</td>
+                            <td class="p-3 text-center">
+                                <button onclick="excluirProduto('${p.id}')" class="text-red-500 hover:text-red-700 font-medium px-3 py-1 rounded border border-red-200 hover:bg-red-50 transition-colors text-sm">🗑️ Excluir</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                console.error("Erro ao carregar produtos:", err);
+            }
+        }
+
+        async function excluirProduto(id) {
+            if(!confirm("Tem a certeza que deseja excluir este produto do inventário?")) return;
+            try {
+                const res = await fetch(`https://meu-pdv-backend-ruvs.onrender.com/api/products/${id}`, { method: 'DELETE' });
+                if(res.ok) {
+                    carregarProdutos(); // Recarrega a tabela após apagar
+                } else {
+                    alert("Erro: Não é possível apagar um produto que já possui vendas associadas (para manter o histórico financeiro correto).");
+                }
+            } catch (err) {
+                alert("Erro de comunicação com o servidor.");
+            }
+        }
+        
+        // Carrega o inventário silenciosamente no arranque
+        setTimeout(carregarProdutos, 1000);
 
         // 3. PDV
         let carrinho = [];
