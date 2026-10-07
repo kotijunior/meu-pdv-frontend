@@ -1,0 +1,15 @@
+{
+  "name": "MeuPDV SaaS - Sistema Integrado",
+  "short_name": "MeuPDV",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#1f2937",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1011/1011812.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
