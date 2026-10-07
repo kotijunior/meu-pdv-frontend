@@ -262,9 +262,10 @@
 
                     <!-- ESTADO 2: CAIXA ABERTO (Painel de Controlo e Fechamento) -->
                     <div id="painelCaixaAberto" class="hidden space-y-4">
-                        <div class="bg-green-50 border-l-4 border-green-500 p-4 text-green-700 text-sm">
-                            ✅ Caixa Aberto! Turno em andamento.
-                            <div class="mt-1 font-semibold" id="infoCaixaAberto"></div>
+                        <div class="bg-green-50 border-l-4 border-green-500 p-4 text-green-700 text-sm space-y-1">
+                            <div class="font-bold flex items-center gap-1">✅ Caixa Aberto! Turno em andamento.</div>
+                            <div id="infoCaixaAberto" class="font-semibold text-gray-700"></div>
+                            <div id="infoFundoTroco" class="text-blue-700 font-bold"></div>
                         </div>
                         <form id="formFecharCaixa" class="space-y-4 mt-4">
                             <div>
@@ -955,6 +956,9 @@
                 painelFechado.classList.add('hidden');
                 painelAberto.classList.remove('hidden');
                 document.getElementById('infoCaixaAberto').innerText = `ID do Turno: ${caixaAtualId.substring(0,8)}...`;
+		const fundoSalvo = localStorage.getItem('pdv_fundo_inicial') || '0.00';
+                const elFundo = document.getElementById('infoFundoTroco');
+                if(elFundo) elFundo.innerText = `Fundo de Troco Inicial: R$ ${parseFloat(fundoSalvo).toFixed(2)}`;
             } else {
                 painelFechado.classList.remove('hidden');
                 painelAberto.classList.add('hidden');
@@ -977,6 +981,7 @@
                 if (res.ok) {
                     caixaAtualId = data.cashRegister.id;
                     localStorage.setItem('pdv_caixa_id', caixaAtualId);
+		    localStorage.setItem('pdv_fundo_inicial', opening_balance);
                     verificarEstadoCaixaUI();
                     mostrarToast("Caixa aberto com sucesso!", "sucesso");
                     document.getElementById('formAbrirCaixa').reset();
