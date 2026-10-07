@@ -15,11 +15,11 @@
             <form id="loginForm" class="space-y-4">
                 <div>
                     <label class="block text-gray-700 font-medium mb-1">E-mail</label>
-                    <input type="email" id="email" required class="w-full border rounded p-2 focus:border-blue-500" value="admin@loja.com">
+                    <input type="email" id="email" required class="w-full border rounded p-2 focus:border-blue-500" placeholder="admin@loja.com">
                 </div>
                 <div>
                     <label class="block text-gray-700 font-medium mb-1">Palavra-passe</label>
-                    <input type="password" id="password" required class="w-full border rounded p-2 focus:border-blue-500" value="123456">
+                    <input type="password" id="password" required class="w-full border rounded p-2 focus:border-blue-500" placeholder="******">
                 </div>
                 <button type="submit" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-3 rounded transition-colors">
                     Entrar no Sistema
@@ -44,6 +44,12 @@
                 <button onclick="changeTab('aba-caixa', this)" class="tab-btn text-gray-300 hover:text-white px-4 py-2 rounded font-medium transition-colors">💵 Caixa</button>
                 <button onclick="changeTab('aba-relatorios', this)" class="tab-btn text-gray-300 hover:text-white px-4 py-2 rounded font-medium transition-colors">📊 Relatórios</button>
             </div>
+
+	    <div class="font-bold text-lg flex items-center gap-2 w-full md:w-auto justify-center md:justify-start">
+                <span>🚀 MeuPDV SaaS</span>
+                <button onclick="terminarSessao()" class="ml-4 text-xs bg-red-600 hover:bg-red-700 px-3 py-1 rounded transition-colors">Sair</button>
+            </div>
+
         </nav>
 
         <!-- Área de Conteúdo Principal -->
@@ -198,7 +204,18 @@
 
     <!-- ==================== LÓGICA JAVASCRIPT ==================== -->
     <script>
-        // 0. LÓGICA DE LOGIN
+        // 0. LÓGICA DE LOGIN E SESSÃO
+        
+        // Verifica automaticamente se já existe um passe válido ao abrir o site
+        window.onload = () => {
+            const tokenGuardado = localStorage.getItem('pdv_token');
+            if (tokenGuardado) {
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('mainSystem').classList.remove('hidden');
+                document.getElementById('mainSystem').classList.add('flex');
+            }
+        };
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value;
@@ -216,10 +233,16 @@
                 if (res.ok) {
                     msg.className = "mt-4 text-center font-medium text-green-600";
                     msg.innerText = `✅ Bem-vindo, ${data.user.name}!`;
+                    
+                    // MÁGICA DA SESSÃO: Guarda o token recebido no navegador
+                    localStorage.setItem('pdv_token', data.token);
+                    document.getElementById('password').value = ''; // Limpa a palavra-passe por segurança
+
                     setTimeout(() => {
                         document.getElementById('loginScreen').classList.add('hidden');
                         document.getElementById('mainSystem').classList.remove('hidden');
                         document.getElementById('mainSystem').classList.add('flex');
+                        msg.innerText = ''; 
                     }, 500);
                 } else {
                     msg.className = "mt-4 text-center font-medium text-red-600";
@@ -230,6 +253,12 @@
                 msg.innerText = "❌ Erro de ligação ao servidor.";
             }
         });
+
+        // Função para destruir o passe e trancar o sistema
+        function terminarSessao() {
+            localStorage.removeItem('pdv_token');
+            window.location.reload();
+        }
 
         // 1. NAVEGAÇÃO
         function changeTab(tabId, btnElement) {
