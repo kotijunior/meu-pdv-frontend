@@ -220,6 +220,9 @@
                 </div>
             </div>
 
+    <!-- CONTENTOR DE NOTIFICAÇÕES (TOASTS) -->
+            <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
+
         </main>
     </div> <!-- Fim mainSystem -->
 
@@ -320,10 +323,39 @@
             } catch (err) { alert("Erro de conexão."); }
         });
 
+        // --- MOTOR DE NOTIFICAÇÕES (TOASTS) ---
+        function mostrarToast(mensagem, tipo = 'sucesso') {
+            const container = document.getElementById('toast-container');
+            if (!container) return; // Segurança caso o HTML não exista
+            
+            const toast = document.createElement('div');
+            const bgCor = tipo === 'sucesso' ? 'bg-green-600' : (tipo === 'erro' ? 'bg-red-600' : 'bg-blue-600');
+            const icone = tipo === 'sucesso' ? '✅' : '❌';
+            
+            toast.className = `${bgCor} text-white px-6 py-3 rounded shadow-lg font-medium transform transition-all duration-300 translate-y-10 opacity-0 flex items-center gap-2`;
+            toast.innerHTML = `<span>${icone}</span> <span>${mensagem}</span>`;
+            
+            container.appendChild(toast);
+            
+            // Animação de entrada
+            setTimeout(() => toast.classList.remove('translate-y-10', 'opacity-0'), 10);
+            
+            // Remove automaticamente após 3 segundos
+            setTimeout(() => {
+                toast.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // --- CORREÇÃO DO CARREGAMENTO DE INVENTÁRIO ---
         async function carregarProdutos() {
             try {
                 const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/products');
-                const produtos = await res.json();
+                const resposta = await res.json();
+                
+                // MÁGICA: Se o back-end enviar um objeto com os produtos lá dentro, nós extraímos corretamente
+                const produtos = Array.isArray(resposta) ? resposta : (resposta.produtos || resposta.products || resposta.rows || []);
+                
                 const tbody = document.getElementById('tabelaProdutos');
                 tbody.innerHTML = '';
                 
@@ -347,6 +379,7 @@
                 });
             } catch (err) {
                 console.error("Erro ao carregar produtos:", err);
+                mostrarToast("Não foi possível carregar o inventário.", "erro");
             }
         }
 
@@ -420,7 +453,7 @@
         }
 
         async function finalizarVenda() {
-            if (carrinho.length === 0) return alert("Carrinho vazio!");
+            if (carrinho.length === 0) return mostrarToast("Carrinho vazio!", "erro");
             const metodoPagamento = document.getElementById('paymentMethod').value;
             const payload = { items: carrinho, payment_method: metodoPagamento, total_amount: valorTotalVenda };
             
