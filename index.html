@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeuPDV SaaS - Sistema Integrado</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 h-screen overflow-hidden">
+
+    <!-- ==================== ECRÃ DE LOGIN ==================== -->
+    <div id="loginScreen" class="h-full flex flex-col items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-sm">
+            <h1 class="text-2xl font-bold mb-6 text-gray-800 text-center">🔐 Acesso Restrito</h1>
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 font-medium mb-1">E-mail</label>
+                    <!-- Já deixei preenchido para facilitar os testes -->
+                    <input type="email" id="email" required class="w-full border rounded p-2 focus:border-blue-500" value="admin@loja.com">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-1">Palavra-passe</label>
+                    <input type="password" id="password" required class="w-full border rounded p-2 focus:border-blue-500" value="123456">
+                </div>
+                <button type="submit" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-3 rounded transition-colors">
+                    Entrar no Sistema
+                </button>
+            </form>
+            <div id="msgLogin" class="mt-4 text-center font-medium text-sm"></div>
+        </div>
+    </div>
+
+    <!-- Barra de Navegação com Abas -->
+    <nav class="w-full bg-gray-800 text-white p-4 shadow-md flex justify-between items-center z-10">
+        <div class="font-bold text-lg flex items-center gap-2">
+            <span>🚀 MeuPDV SaaS</span>
+        </div>
+        <div class="flex gap-2 text-sm">
+            <button onclick="changeTab('aba-produtos', this)" class="tab-btn bg-blue-600 text-white px-4 py-2 rounded font-medium transition-colors">📦 Produtos</button>
+            <button onclick="changeTab('aba-pdv', this)" class="tab-btn text-gray-300 hover:text-white px-4 py-2 rounded font-medium transition-colors">🛒 Frente de Caixa</button>
+            <button onclick="changeTab('aba-caixa', this)" class="tab-btn text-gray-300 hover:text-white px-4 py-2 rounded font-medium transition-colors">💵 Caixa</button>
+            <button onclick="changeTab('aba-relatorios', this)" class="tab-btn text-gray-300 hover:text-white px-4 py-2 rounded font-medium transition-colors">📊 Relatórios</button>
+        </div>
+    </nav>
+
+    <!-- Área de Conteúdo Principal -->
+    <main class="flex-1 overflow-y-auto p-6">
+
+        <!-- ==================== ABA 1: PRODUTOS ==================== -->
+        <div id="aba-produtos" class="tab-pane block">
+            <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-lg mx-auto">
+                <h1 class="text-2xl font-bold mb-6 text-gray-800 text-center">📦 Cadastro de Produtos</h1>
+                <form id="productForm" class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 font-medium mb-1">Nome do Produto</label>
+                        <input type="text" id="name" required class="w-full border rounded p-2 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-medium mb-1">Código de Barras</label>
+                        <input type="text" id="barcode" class="w-full border rounded p-2 focus:border-blue-500">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-1">Preço de Custo</label>
+                            <input type="number" step="0.01" id="cost_price" required class="w-full border rounded p-2 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-1">Preço de Venda</label>
+                            <input type="number" step="0.01" id="sale_price" required class="w-full border rounded p-2 focus:border-blue-500">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-1">Qtd. Estoque</label>
+                            <input type="number" id="stock_quantity" required class="w-full border rounded p-2 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-1">Categoria</label>
+                            <input type="text" id="category" class="w-full border rounded p-2 focus:border-blue-500">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded mt-4">Salvar no Banco</button>
+                </form>
+                <div id="mensagemProduto" class="mt-4 text-center font-medium"></div>
+            </div>
+        </div>
+
+        <!-- ==================== ABA 2: PDV (FRENTE DE CAIXA) ==================== -->
+        <div id="aba-pdv" class="tab-pane hidden h-full">
+            <div class="flex h-full gap-6 max-w-6xl mx-auto">
+                <section class="w-2/3 bg-white p-6 rounded-lg shadow-md flex flex-col justify-between">
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800 mb-4">Adicionar Item à Venda</h2>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-1">Código de Barras</label>
+                                <div class="flex gap-2">
+                                    <input type="text" id="barcodeInput" class="w-full border rounded p-2 focus:border-blue-500" placeholder="Bipe ou digite o código">
+                                    <button onclick="buscarProduto()" class="bg-gray-800 hover:bg-gray-700 text-white px-4 rounded font-medium">Buscar</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Área que mostra o produto encontrado (Escondida por padrão) -->
+                            <div id="produtoSelecionado" class="hidden bg-blue-50 border border-blue-200 p-3 rounded">
+                                <p class="font-bold text-blue-800" id="produtoNomeTela">-</p>
+                                <p class="text-sm text-blue-600">Preço Unitário: R$ <span id="produtoPrecoTela">0.00</span></p>
+                                <!-- Guarda o UUID secretamente para o banco de dados -->
+                                <input type="hidden" id="produtoIdOculto">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-gray-700 font-medium mb-1">Quantidade</label>
+                                    <input type="number" id="quantity" value="1" min="1" class="w-full border rounded p-2 focus:border-blue-500">
+                                </div>
+                            </div>
+                            <button onclick="adicionarItem()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full">➕ Inserir no Carrinho</button>
+                        </div>
+                    </div>
+                    <div id="statusMensagemVenda" class="font-medium text-center mt-4"></div>
+                </section>
+                <section class="w-1/3 bg-white p-6 rounded-lg shadow-md flex flex-col justify-between">
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800 mb-4">Carrinho Atual</h2>
+                        <div id="carrinhoItens" class="space-y-2 max-h-60 overflow-y-auto border-b pb-4 mb-4">
+                            <p class="text-gray-400 text-sm">Nenhum item adicionado...</p>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-medium mb-1">Forma de Pagamento</label>
+                        <select id="paymentMethod" class="w-full border rounded p-2 mb-4">
+                            <option value="pix">PIX</option>
+                            <option value="credit">Cartão de Crédito</option>
+                            <option value="cash">Dinheiro</option>
+                        </select>
+                        <div class="flex justify-between items-center mb-4 text-xl font-bold">
+                            <span>Total:</span>
+                            <span id="spanTotal" class="text-blue-600">R$ 0,00</span>
+                        </div>
+                        <button onclick="finalizarVenda()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded text-lg">💰 Finalizar Venda</button>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- ==================== ABA 3: CAIXA ==================== -->
+        <div id="aba-caixa" class="tab-pane hidden">
+            <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md mx-auto">
+                <h1 class="text-2xl font-bold mb-6 text-gray-800 text-center">💵 Gestão de Turno</h1>
+                <div class="space-y-6">
+                    <div class="border-b pb-4">
+                        <h2 class="text-lg font-semibold text-gray-700 mb-2">1. Abertura de Caixa</h2>
+                        <input type="number" step="0.01" id="openingBalance" class="w-full border rounded p-2 mb-2" placeholder="Fundo de troco">
+                        <button onclick="abrirCaixa()" class="w-full bg-green-600 text-white font-bold py-2 rounded">Abrir Turno</button>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-700 mb-2">2. Fechamento de Caixa</h2>
+                        <input type="text" id="registerId" class="w-full border rounded p-2 mb-2" placeholder="ID do Caixa (UUID)">
+                        <input type="number" step="0.01" id="closingBalance" class="w-full border rounded p-2 mb-2" placeholder="Total na gaveta">
+                        <button onclick="fecharCaixa()" class="w-full bg-red-600 text-white font-bold py-2 rounded">Fechar Turno</button>
+                    </div>
+                </div>
+                <div id="mensagemCaixa" class="mt-4 text-center font-medium text-sm"></div>
+            </div>
+        </div>
+
+        <!-- ==================== ABA 4: RELATÓRIOS ==================== -->
+        <div id="aba-relatorios" class="tab-pane hidden">
+            <div class="max-w-4xl mx-auto">
+                <h1 class="text-2xl font-bold text-gray-800 mb-6">📊 Relatório Gerencial da Loja</h1>
+                <div class="grid grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
+                        <p class="text-gray-500 font-medium">Faturamento Total</p>
+                        <h2 id="faturamento" class="text-3xl font-bold text-gray-800 mt-2">R$ 0,00</h2>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
+                        <p class="text-gray-500 font-medium">Total de Vendas</p>
+                        <h2 id="vendas" class="text-3xl font-bold text-gray-800 mt-2">0</h2>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4">Resumo do Estoque</h2>
+                    <p class="text-gray-700">Produtos cadastrados: <span id="totalProd" class="font-bold">0</span></p>
+                    <p class="text-gray-700 mt-2">Total de itens físicos: <span id="totalEstoque" class="font-bold">0</span></p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ==================== LÓGICA JAVASCRIPT UNIFICADA ==================== -->
+    <script>
+	// 0. LÓGICA DE LOGIN
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const msg = document.getElementById('msgLogin');
+
+            try {
+                // Chama a rota de login no Back-end
+                const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    msg.className = "mt-4 text-center font-medium text-green-600";
+                    msg.innerText = `✅ Bem-vindo, ${data.user.name}!`;
+                    
+                    // Aguarda meio segundo e destranca o sistema
+                    setTimeout(() => {
+                        document.getElementById('loginScreen').classList.add('hidden');
+                        document.getElementById('mainSystem').classList.remove('hidden');
+                        document.getElementById('mainSystem').classList.add('flex');
+                    }, 500);
+                } else {
+                    msg.className = "mt-4 text-center font-medium text-red-600";
+                    msg.innerText = "❌ " + (data.error || "Acesso negado");
+                }
+            } catch (err) {
+                msg.className = "mt-4 text-center font-medium text-red-600";
+                msg.innerText = "❌ Erro de ligação ao servidor Node.js.";
+            }
+        });
+
+        // 1. LÓGICA DE NAVEGAÇÃO ENTRE ABAS
+        function changeTab(tabId, btnElement) {
+            // Oculta todas as abas
+            document.querySelectorAll('.tab-pane').forEach(tab => tab.classList.add('hidden'));
+            
+            // Remove o destaque de todos os botões
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white');
+                btn.classList.add('text-gray-300', 'hover:text-white');
+            });
+
+            // Mostra a aba selecionada e destaca o botão
+            document.getElementById(tabId).classList.remove('hidden');
+            btnElement.classList.remove('text-gray-300', 'hover:text-white');
+            btnElement.classList.add('bg-blue-600', 'text-white');
+
+            // Recarrega os relatórios automaticamente ao abrir a aba
+            if (tabId === 'aba-relatorios') carregarRelatorio();
+        }
+
+        // 2. LÓGICA DE PRODUTOS
+        document.getElementById('productForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('name').value,
+                barcode: document.getElementById('barcode').value,
+                cost_price: parseFloat(document.getElementById('cost_price').value),
+                sale_price: parseFloat(document.getElementById('sale_price').value),
+                stock_quantity: parseInt(document.getElementById('stock_quantity').value),
+                category: document.getElementById('category').value
+            };
+            try {
+                const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (res.ok) {
+                    document.getElementById('mensagemProduto').className = "mt-4 text-green-600 text-center";
+                    document.getElementById('mensagemProduto').innerText = "✅ Produto cadastrado!";
+                    document.getElementById('productForm').reset();
+                }
+            } catch (err) { alert("Erro de conexão."); }
+        });
+
+        // 3. LÓGICA DO PDV
+        let carrinho = [];
+        let valorTotalVenda = 0;
+
+        async function buscarProduto() {
+            const barcode = document.getElementById('barcodeInput').value.trim();
+            if (!barcode) return alert("Digite um código de barras!");
+
+            try {
+                const res = await fetch(`https://meu-pdv-backend-ruvs.onrender.com/api/products/barcode/${barcode}`);
+                if (res.ok) {
+                    const produto = await res.json();
+                    
+                    // Mostra o produto na tela e guarda o ID em segredo
+                    document.getElementById('produtoSelecionado').classList.remove('hidden');
+                    document.getElementById('produtoNomeTela').innerText = produto.name;
+                    document.getElementById('produtoPrecoTela').innerText = parseFloat(produto.sale_price).toFixed(2);
+                    document.getElementById('produtoIdOculto').value = produto.id;
+                } else {
+                    alert("Produto não encontrado! Verifique o código.");
+                    document.getElementById('produtoSelecionado').classList.add('hidden');
+                    document.getElementById('produtoIdOculto').value = '';
+                }
+            } catch (err) { alert("Erro de conexão."); }
+        }
+
+        function adicionarItem() {
+            const productId = document.getElementById('produtoIdOculto').value;
+            const quantity = parseInt(document.getElementById('quantity').value);
+            const unitPrice = parseFloat(document.getElementById('produtoPrecoTela').innerText);
+            
+            if (!productId) return alert("Por favor, busque um produto primeiro!");
+            
+            const subtotal = quantity * unitPrice;
+            carrinho.push({ product_id: productId, quantity, unit_price: unitPrice, subtotal });
+            valorTotalVenda += subtotal;
+            atualizarCarrinhoTela();
+            
+            // Limpa a tela para o próximo produto
+            document.getElementById('barcodeInput').value = '';
+            document.getElementById('produtoSelecionado').classList.add('hidden');
+            document.getElementById('produtoIdOculto').value = '';
+            document.getElementById('quantity').value = '1';
+        }
+
+        function atualizarCarrinhoTela() {
+            const container = document.getElementById('carrinhoItens');
+            container.innerHTML = carrinho.length === 0 ? '<p class="text-gray-400 text-sm">Nenhum item...</p>' : '';
+            carrinho.forEach(item => {
+                container.innerHTML += `<div class="flex justify-between text-sm border-b py-1"><span>Qtd: ${item.quantity} | ID: ${item.product_id.substring(0,5)}...</span><span class="font-bold">R$ ${item.subtotal.toFixed(2)}</span></div>`;
+            });
+            document.getElementById('spanTotal').innerText = `R$ ${valorTotalVenda.toFixed(2)}`;
+        }
+
+        async function finalizarVenda() {
+            if (carrinho.length === 0) return alert("Carrinho vazio!");
+            const payload = { items: carrinho, payment_method: document.getElementById('paymentMethod').value, total_amount: valorTotalVenda };
+            try {
+                const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/sales', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (res.ok) {
+                    document.getElementById('statusMensagemVenda').className = "text-green-600 mt-4";
+                    document.getElementById('statusMensagemVenda').innerText = "✅ Venda registrada e estoque abatido!";
+                    carrinho = []; valorTotalVenda = 0; atualizarCarrinhoTela();
+                }
+            } catch (err) { alert("Erro ao finalizar."); }
+        }
+
+        // 4. LÓGICA DO CAIXA
+        async function abrirCaixa() {
+            const opening_balance = parseFloat(document.getElementById('openingBalance').value);
+            const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/cash/open', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ opening_balance }) });
+            const data = await res.json();
+            if (res.ok) document.getElementById('mensagemCaixa').innerText = `✅ Caixa aberto! ID: ${data.cashRegister.id}`;
+        }
+
+        async function fecharCaixa() {
+            const id = document.getElementById('registerId').value;
+            const closing_balance = parseFloat(document.getElementById('closingBalance').value);
+            const res = await fetch(`https://meu-pdv-backend-ruvs.onrender.com/api/cash/close/${id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ closing_balance }) });
+            if (res.ok) document.getElementById('mensagemCaixa').innerText = `✅ Caixa fechado! Saldo: R$ ${closing_balance.toFixed(2)}`;
+        }
+
+        // 5. LÓGICA DE RELATÓRIOS
+        async function carregarRelatorio() {
+            try {
+                const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/reports/summary');
+                const data = await res.json();
+                document.getElementById('faturamento').innerText = `R$ ${data.faturamentoTotal.toFixed(2)}`;
+                document.getElementById('vendas').innerText = data.totalVendas;
+                document.getElementById('totalProd').innerText = data.totalProdutosCadastrados;
+                document.getElementById('totalEstoque').innerText = data.totalItensEstoque;
+            } catch (err) {}
+        }
+    </script>
+</body>
+</html>
