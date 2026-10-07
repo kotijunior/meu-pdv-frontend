@@ -280,7 +280,6 @@
                 if (res.ok) {
                     const produto = await res.json();
                     
-                    // Mostra o produto na tela e guarda o ID em segredo
                     document.getElementById('produtoSelecionado').classList.remove('hidden');
                     document.getElementById('produtoNomeTela').innerText = produto.name;
                     document.getElementById('produtoPrecoTela').innerText = parseFloat(produto.sale_price).toFixed(2);
@@ -297,15 +296,17 @@
             const productId = document.getElementById('produtoIdOculto').value;
             const quantity = parseInt(document.getElementById('quantity').value);
             const unitPrice = parseFloat(document.getElementById('produtoPrecoTela').innerText);
+            const productName = document.getElementById('produtoNomeTela').innerText;
             
             if (!productId) return alert("Por favor, busque um produto primeiro!");
             
             const subtotal = quantity * unitPrice;
-            carrinho.push({ product_id: productId, quantity, unit_price: unitPrice, subtotal });
+            
+            // Agora guardamos também o nome para mostrar no recibo e na tela
+            carrinho.push({ product_id: productId, name: productName, quantity, unit_price: unitPrice, subtotal });
             valorTotalVenda += subtotal;
             atualizarCarrinhoTela();
             
-            // Limpa a tela para o próximo produto
             document.getElementById('barcodeInput').value = '';
             document.getElementById('produtoSelecionado').classList.add('hidden');
             document.getElementById('produtoIdOculto').value = '';
@@ -316,22 +317,81 @@
             const container = document.getElementById('carrinhoItens');
             container.innerHTML = carrinho.length === 0 ? '<p class="text-gray-400 text-sm">Nenhum item...</p>' : '';
             carrinho.forEach(item => {
-                container.innerHTML += `<div class="flex justify-between text-sm border-b py-1"><span>Qtd: ${item.quantity} | ID: ${item.product_id.substring(0,5)}...</span><span class="font-bold">R$ ${item.subtotal.toFixed(2)}</span></div>`;
+                // Carrinho agora mostra Quantidade x Nome do Produto
+                container.innerHTML += `<div class="flex justify-between text-sm border-b py-1"><span>${item.quantity}x ${item.name}</span><span class="font-bold">R$ ${item.subtotal.toFixed(2)}</span></div>`;
             });
             document.getElementById('spanTotal').innerText = `R$ ${valorTotalVenda.toFixed(2)}`;
         }
 
         async function finalizarVenda() {
             if (carrinho.length === 0) return alert("Carrinho vazio!");
-            const payload = { items: carrinho, payment_method: document.getElementById('paymentMethod').value, total_amount: valorTotalVenda };
+            
+            const metodoPagamento = document.getElementById('paymentMethod').value;
+            const payload = { items: carrinho, payment_method: metodoPagamento, total_amount: valorTotalVenda };
+            
             try {
                 const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/sales', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                 if (res.ok) {
                     document.getElementById('statusMensagemVenda').className = "text-green-600 mt-4";
-                    document.getElementById('statusMensagemVenda').innerText = "✅ Venda registrada e estoque abatido!";
+                    document.getElementById('statusMensagemVenda').innerText = "✅ Venda registrada com sucesso!";
+                    
+                    // Chama a função de gerar e imprimir o recibo
+                    imprimirRecibo(carrinho, valorTotalVenda, metodoPagamento);
+                    
                     carrinho = []; valorTotalVenda = 0; atualizarCarrinhoTela();
                 }
             } catch (err) { alert("Erro ao finalizar."); }
+        }
+
+        // --- NOVA FUNÇÃO DE RECIBO ---
+        function imprimirRecibo(itens, total, pagamento) {
+            const dataAtual = new Date().toLocaleString('pt-BR');
+            const traduzPagamento = { 'pix': 'PIX', 'credit': 'Cartão de Crédito', 'cash': 'Dinheiro' };
+            
+            let htmlRecibo = `
+            <html>
+            <head>
+                <title>Recibo - MeuPDV</title>
+                <style>
+                    body { font-family: monospace; width: 300px; margin: 0 auto; font-size: 12px; color: #000; }
+                    .header, .footer { text-align: center; margin-bottom: 10px; }
+                    .item { display: flex; justify-content: space-between; margin-bottom: 5px; }
+                    .divisor { border-top: 1px dashed #000; margin: 10px 0; }
+                    .total { font-size: 14px; font-weight: bold; text-align: right; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h2>🚀 MeuPDV SaaS</h2>
+                    <p>Recibo Não Fiscal</p>
+                    <p>${dataAtual}</p>
+                </div>
+                <div class="divisor"></div>
+                <div><strong>Qtd | Item | Subtotal</strong></div>
+                <div class="divisor"></div>
+            `;
+            
+            itens.forEach(item => {
+                htmlRecibo += `<div class="item"><span>${item.quantity}x ${item.name.substring(0,18)}</span><span>R$ ${item.subtotal.toFixed(2)}</span></div>`;
+            });
+            
+            htmlRecibo += `
+                <div class="divisor"></div>
+                <div class="total">TOTAL: R$ ${total.toFixed(2)}</div>
+                <p>Pagamento: ${traduzPagamento[pagamento]}</p>
+                <div class="divisor"></div>
+                <div class="footer">Obrigado pela preferência!</div>
+            </body>
+            </html>
+            `;
+            
+            // Abre uma janela invisível, injeta o recibo e aciona a impressora
+            const janela = window.open('', '', 'width=350,height=500');
+            janela.document.write(htmlRecibo);
+            janela.document.close();
+            janela.focus();
+            janela.print();
+            janela.close();
         }
 
         // 4. LÓGICA DO CAIXA
