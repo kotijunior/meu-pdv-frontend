@@ -117,59 +117,77 @@
                 </div>
             </div>
 
-            <!-- ABA 2: PDV (FRENTE DE CAIXA) -->
-		<div id="aba-pdv" class="tab-pane hidden">
-    		<!-- Flex-col no telemóvel, Flex-row no Desktop -->
-    		<div class="flex flex-col lg:flex-row gap-6 max-w-6xl mx-auto pb-8">
-                    <section class="w-full lg:w-2/3 bg-white p-6 rounded-lg shadow-md flex flex-col justify-between min-h-[300px]">
+            <!-- ABA 2: FRENTE DE CAIXA (PDV) -->
+            <div id="aba-pdv" class="tab-pane hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 p-4 md:p-6 max-w-7xl mx-auto">
+                    
+                    <!-- COLUNA ESQUERDA/CENTRAL: LEITOR E CARRINHO -->
+                    <div class="lg:col-span-2 space-y-4">
+                        <div class="bg-white p-4 rounded-lg shadow-md">
+                            <label class="block text-gray-700 font-bold mb-2">🔍 Digitar ou Ler Código de Barras / Nome</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="inputBuscaPDV" class="w-full border rounded p-3 text-lg focus:border-blue-500" placeholder="Pressione F2 ou bipe o produto...">
+                                <button onclick="adicionarProdutoPorBusca()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 rounded shadow transition-colors">Adicionar</button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-lg shadow-md">
+                            <h2 class="text-lg font-bold text-gray-800 mb-3">🛒 Itens no Carrinho</h2>
+                            <div class="overflow-x-auto min-h-[250px] max-h-[350px] overflow-y-auto">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-gray-100 border-b text-gray-700 text-sm">
+                                            <th class="p-2">Produto</th>
+                                            <th class="p-2 text-center">Qtd</th>
+                                            <th class="p-2 text-right">Preço Unit.</th>
+                                            <th class="p-2 text-right">Subtotal</th>
+                                            <th class="p-2 text-center">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabelaCarrinhoPDV" class="text-gray-600 text-sm">
+                                        <tr><td colspan="5" class="p-8 text-center text-gray-400">Carrinho vazio. Adicione produtos.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- COLUNA DIREITA: PAGAMENTO E TOTALIZADORES -->
+                    <div class="bg-white p-6 rounded-lg shadow-md flex flex-col justify-between space-y-4">
                         <div>
-                            <h2 class="text-lg font-bold text-gray-800 mb-4">Adicionar Item à Venda</h2>
-                            <div class="space-y-4">
-                                <div>
-                                    <label class="block text-gray-700 font-medium mb-1">Código de Barras</label>
-                                    <div class="flex flex-col sm:flex-row gap-2">
-                                        <input type="text" id="barcodeInput" class="w-full border rounded p-3 text-lg focus:border-blue-500" placeholder="Bipe ou digite o código">
-                                        <button onclick="buscarProduto()" class="bg-gray-800 hover:bg-gray-700 text-white px-6 py-3 rounded font-bold w-full sm:w-auto">Buscar</button>
+                            <h2 class="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Resumo da Venda</h2>
+                            <div class="flex justify-between items-center text-2xl font-bold text-gray-900 mb-6">
+                                <span>Total:</span>
+                                <span id="totalCarrinhoPDV" class="text-green-600">R$ 0,00</span>
+                            </div>
+
+                            <div class="space-y-3">
+                                <label class="block text-gray-700 font-medium">Forma de Pagamento</label>
+                                <select id="formaPagamento" class="w-full border rounded p-3 font-medium">
+                                    <option value="pix">PIX</option>
+                                    <option value="dinheiro">Dinheiro</option>
+                                    <option value="cartao_debito">Cartão de Débito</option>
+                                    <option value="cartao_credito">Cartão de Crédito</option>
+                                </select>
+
+                                <!-- Campo de Dinheiro / Troco -->
+                                <div id="containerDinheiro" class="hidden space-y-2 pt-2">
+                                    <label class="block text-gray-700 text-sm font-medium">Valor Recebido (R$)</label>
+                                    <input type="number" step="0.01" id="valorRecebido" oninput="calcularTroco()" class="w-full border rounded p-2" placeholder="0.00">
+                                    <div class="flex justify-between text-sm font-bold text-blue-600 pt-1">
+                                        <span>Troco:</span>
+                                        <span id="trocoCalculado">R$ 0,00</span>
                                     </div>
                                 </div>
-                                
-                                <div id="produtoSelecionado" class="hidden bg-blue-50 border border-blue-200 p-4 rounded">
-                                    <p class="font-bold text-blue-800 text-lg" id="produtoNomeTela">-</p>
-                                    <p class="text-blue-600 font-medium mt-1">Preço Unitário: R$ <span id="produtoPrecoTela">0.00</span></p>
-                                    <input type="hidden" id="produtoIdOculto">
-                                </div>
+                            </div>
+                        </div>
 
-                                <div class="w-full sm:w-1/2">
-                                    <label class="block text-gray-700 font-medium mb-1">Quantidade</label>
-                                    <input type="number" id="quantity" value="1" min="1" class="w-full border rounded p-3 text-lg focus:border-blue-500">
-                                </div>
-                                <button onclick="adicionarItem()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-4 rounded w-full text-lg shadow-md">➕ Inserir no Carrinho</button>
-                            </div>
+                        <div class="space-y-2 pt-4 border-t">
+                            <button onclick="finalizarVendaPDV()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg shadow-lg transition-colors text-lg">✅ Finalizar Venda (F4)</button>
+                            <button onclick="limparCarrinhoPDV()" class="w-full bg-red-100 hover:bg-red-200 text-red-700 font-semibold py-2 rounded transition-colors text-sm">🗑️ Cancelar Venda</button>
                         </div>
-                        <div id="statusMensagemVenda" class="font-medium text-center mt-4"></div>
-                    </section>
-                    
-                    <section class="w-full lg:w-1/3 bg-white p-6 rounded-lg shadow-md flex flex-col justify-between min-h-[350px]">
-                        <div>
-                            <h2 class="text-lg font-bold text-gray-800 mb-4">Carrinho Atual</h2>
-                            <div id="carrinhoItens" class="space-y-3 max-h-60 overflow-y-auto border-b pb-4 mb-4">
-                                <p class="text-gray-400 text-sm">Nenhum item adicionado...</p>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-gray-700 font-medium mb-1">Forma de Pagamento</label>
-                            <select id="paymentMethod" class="w-full border rounded p-3 mb-4 text-lg">
-                                <option value="pix">PIX</option>
-                                <option value="credit">Cartão de Crédito</option>
-                                <option value="cash">Dinheiro</option>
-                            </select>
-                            <div class="flex justify-between items-center mb-6 text-2xl font-bold bg-gray-50 p-4 rounded border">
-                                <span>Total:</span>
-                                <span id="spanTotal" class="text-blue-600">R$ 0,00</span>
-                            </div>
-                            <button onclick="finalizarVenda()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded text-xl shadow-md">💰 Finalizar Venda</button>
-                        </div>
-                    </section>
+                    </div>
+
                 </div>
             </div>
 
@@ -458,72 +476,201 @@
         // Carrega o inventário silenciosamente no arranque
         setTimeout(carregarProdutos, 1000);
 
-        // 3. PDV
-        let carrinho = [];
-        let valorTotalVenda = 0;
+        // --- 3. MOTOR DA FRENTE DE CAIXA (PDV) AVANÇADO ---
+        let carrinhoPDV = [];
 
-        async function buscarProduto() {
-            const barcode = document.getElementById('barcodeInput').value.trim();
-            if (!barcode) return alert("Digite um código de barras!");
+        // Alternar campo de dinheiro/troco dependendo da forma de pagamento
+        document.addEventListener('change', (e) => {
+            if (e.target && e.target.id === 'formaPagamento') {
+                const containerDinheiro = document.getElementById('containerDinheiro');
+                if (containerDinheiro) {
+                    if (e.target.value === 'dinheiro') {
+                        containerDinheiro.classList.remove('hidden');
+                    } else {
+                        containerDinheiro.classList.add('hidden');
+                    }
+                }
+            }
+        });
+
+        // Atalhos de Teclado Globais (F2 para focar na busca, F4 para finalizar)
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'F2') {
+                e.preventDefault();
+                const inputBusca = document.getElementById('inputBuscaPDV');
+                if(inputBusca) inputBusca.focus();
+            }
+            if (e.key === 'F4') {
+                e.preventDefault();
+                finalizarVendaPDV();
+            }
+        });
+
+        // Adicionar produto por código de barras ou nome
+        async function adicionarProdutoPorBusca() {
+            const inputEl = document.getElementById('inputBuscaPDV');
+            if (!inputEl) return;
+            const termo = inputEl.value.trim();
+            if(!termo) return;
 
             try {
-                const res = await fetch(`https://meu-pdv-backend-ruvs.onrender.com/api/products/barcode/${barcode}`);
+                // Tenta procurar pelo código de barras exato primeiro
+                let res = await fetch(`https://meu-pdv-backend-ruvs.onrender.com/api/products/barcode/${termo}`);
+                let produto = null;
+
                 if (res.ok) {
-                    const produto = await res.json();
-                    document.getElementById('produtoSelecionado').classList.remove('hidden');
-                    document.getElementById('produtoNomeTela').innerText = produto.name;
-                    document.getElementById('produtoPrecoTela').innerText = parseFloat(produto.sale_price).toFixed(2);
-                    document.getElementById('produtoIdOculto').value = produto.id;
+                    produto = await res.json();
                 } else {
-                    alert("Produto não encontrado.");
-                    document.getElementById('produtoSelecionado').classList.add('hidden');
-                    document.getElementById('produtoIdOculto').value = '';
+                    // Se não achar por código de barras, busca na lista geral pelo nome
+                    const resGeral = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/products');
+                    const produtos = await resGeral.json();
+                    produto = produtos.find(p => p.name.toLowerCase().includes(termo.toLowerCase()) || p.id === termo);
                 }
-            } catch (err) { alert("Erro de conexão."); }
+
+                if (!produto) {
+                    return mostrarToast("Produto não encontrado!", "erro");
+                }
+
+                if (produto.stock_quantity <= 0) {
+                    return mostrarToast("Produto sem stock disponível!", "erro");
+                }
+
+                // Adiciona ao carrinho ou incrementa quantidade
+                const itemExistente = carrinhoPDV.find(item => item.product_id === produto.id);
+                if (itemExistente) {
+                    if (itemExistente.quantity >= produto.stock_quantity) {
+                        return mostrarToast("Quantidade excede o stock em inventário!", "erro");
+                    }
+                    itemExistente.quantity++;
+                    itemExistente.subtotal = itemExistente.quantity * itemExistente.unit_price;
+                } else {
+                    carrinhoPDV.push({
+                        product_id: produto.id,
+                        name: produto.name,
+                        quantity: 1,
+                        unit_price: parseFloat(produto.sale_price),
+                        subtotal: parseFloat(produto.sale_price)
+                    });
+                }
+
+                inputEl.value = '';
+                renderizarCarrinhoPDV();
+                mostrarToast(`${produto.name} adicionado!`, "sucesso");
+            } catch (err) {
+                console.error(err);
+                mostrarToast("Erro ao buscar produto.", "erro");
+            }
         }
 
-        function adicionarItem() {
-            const productId = document.getElementById('produtoIdOculto').value;
-            const quantity = parseInt(document.getElementById('quantity').value);
-            const unitPrice = parseFloat(document.getElementById('produtoPrecoTela').innerText);
-            const productName = document.getElementById('produtoNomeTela').innerText;
-            
-            if (!productId) return alert("Busque um produto primeiro!");
-            
-            const subtotal = quantity * unitPrice;
-            carrinho.push({ product_id: productId, name: productName, quantity, unit_price: unitPrice, subtotal });
-            valorTotalVenda += subtotal;
-            atualizarCarrinhoTela();
-            
-            document.getElementById('barcodeInput').value = '';
-            document.getElementById('produtoSelecionado').classList.add('hidden');
-            document.getElementById('produtoIdOculto').value = '';
-            document.getElementById('quantity').value = '1';
-        }
+        function renderizarCarrinhoPDV() {
+            const tbody = document.getElementById('tabelaCarrinhoPDV');
+            const totalEl = document.getElementById('totalCarrinhoPDV');
+            if(!tbody || !totalEl) return;
+            tbody.innerHTML = '';
 
-        function atualizarCarrinhoTela() {
-            const container = document.getElementById('carrinhoItens');
-            container.innerHTML = carrinho.length === 0 ? '<p class="text-gray-400 text-sm">Nenhum item...</p>' : '';
-            carrinho.forEach(item => {
-                container.innerHTML += `<div class="flex justify-between text-sm sm:text-base border-b py-2"><span>${item.quantity}x ${item.name}</span><span class="font-bold">R$ ${item.subtotal.toFixed(2)}</span></div>`;
+            if (carrinhoPDV.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-400">Carrinho vazio. Adicione produtos.</td></tr>';
+                totalEl.innerText = 'R$ 0,00';
+                return;
+            }
+
+            let totalGeral = 0;
+            carrinhoPDV.forEach((item, index) => {
+                totalGeral += item.subtotal;
+                tbody.innerHTML += `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="p-2 font-medium text-gray-800">${item.name}</td>
+                        <td class="p-2 text-center">
+                            <button onclick="alterarQtdCarrinho(${index}, -1)" class="px-2 bg-gray-200 rounded font-bold">-</button>
+                            <span class="px-2">${item.quantity}</span>
+                            <button onclick="alterarQtdCarrinho(${index}, 1)" class="px-2 bg-gray-200 rounded font-bold">+</button>
+                        </td>
+                        <td class="p-2 text-right">R$ ${item.unit_price.toFixed(2)}</td>
+                        <td class="p-2 text-right font-bold text-gray-700">R$ ${item.subtotal.toFixed(2)}</td>
+                        <td class="p-2 text-center">
+                            <button onclick="removerItemCarrinho(${index})" class="text-red-500 hover:text-red-700 font-bold">✕</button>
+                        </td>
+                    </tr>
+                `;
             });
-            document.getElementById('spanTotal').innerText = `R$ ${valorTotalVenda.toFixed(2)}`;
+
+            totalEl.innerText = `R$ ${totalGeral.toFixed(2)}`;
+            const formaPag = document.getElementById('formaPagamento');
+            if(formaPag && formaPag.value === 'dinheiro') calcularTroco();
         }
 
-        async function finalizarVenda() {
-            if (carrinho.length === 0) return mostrarToast("Carrinho vazio!", "erro");
-            const metodoPagamento = document.getElementById('paymentMethod').value;
-            const payload = { items: carrinho, payment_method: metodoPagamento, total_amount: valorTotalVenda };
-            
-            try {
-                const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/sales', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                if (res.ok) {
-                    document.getElementById('statusMensagemVenda').className = "text-green-600 mt-4";
-                    document.getElementById('statusMensagemVenda').innerText = "✅ Venda finalizada!";
-                    imprimirRecibo(carrinho, valorTotalVenda, metodoPagamento);
-                    carrinho = []; valorTotalVenda = 0; atualizarCarrinhoTela();
+        function alterarQtdCarrinho(index, delta) {
+            carrinhoPDV[index].quantity += delta;
+            if (carrinhoPDV[index].quantity <= 0) {
+                carrinhoPDV.splice(index, 1);
+            } else {
+                carrinhoPDV[index].subtotal = carrinhoPDV[index].quantity * carrinhoPDV[index].unit_price;
+            }
+            renderizarCarrinhoPDV();
+        }
+
+        function removerItemCarrinho(index) {
+            carrinhoPDV.splice(index, 1);
+            renderizarCarrinhoPDV();
+        }
+
+        function limparCarrinhoPDV() {
+            carrinhoPDV = [];
+            renderizarCarrinhoPDV();
+            mostrarToast("Carrinho limpo.", "info");
+        }
+
+        function calcularTroco() {
+            const totalGeral = carrinhoPDV.reduce((acc, item) => acc + item.subtotal, 0);
+            const valRec = document.getElementById('valorRecebido');
+            const trocoEl = document.getElementById('trocoCalculado');
+            if(!valRec || !trocoEl) return;
+            const recebido = parseFloat(valRec.value) || 0;
+            const troco = recebido - totalGeral;
+            trocoEl.innerText = troco >= 0 ? `R$ ${troco.toFixed(2)}` : 'Valor insuficiente';
+        }
+
+        async function finalizarVendaPDV() {
+            if (carrinhoPDV.length === 0) return mostrarToast("O carrinho está vazio!", "erro");
+
+            const total_amount = carrinhoPDV.reduce((acc, item) => acc + item.subtotal, 0);
+            const formaPag = document.getElementById('formaPagamento');
+            const payment_method = formaPag ? formaPag.value : 'pix';
+
+            if (payment_method === 'dinheiro') {
+                const valRec = document.getElementById('valorRecebido');
+                const recebido = valRec ? (parseFloat(valRec.value) || 0) : 0;
+                if (recebido < total_amount) {
+                    return mostrarToast("Valor em dinheiro recebido é inferior ao total da venda!", "erro");
                 }
-            } catch (err) { alert("Erro ao finalizar."); }
+            }
+
+            try {
+                const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/sales', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items: carrinhoPDV, payment_method, total_amount })
+                });
+
+                if (res.ok) {
+                    mostrarToast("Venda realizada com sucesso!", "sucesso");
+                    
+                    if (typeof imprimirRecibo === 'function') {
+                        imprimirRecibo(carrinhoPDV, total_amount, payment_method);
+                    }
+
+                    carrinhoPDV = [];
+                    renderizarCarrinhoPDV();
+                    const valRec = document.getElementById('valorRecebido');
+                    if(valRec) valRec.value = '';
+                } else {
+                    const errData = await res.json();
+                    mostrarToast(errData.error || "Erro ao registar venda", "erro");
+                }
+            } catch (err) {
+                console.error(err);
+                mostrarToast("Erro de conexão ao finalizar venda.", "erro");
+            }
         }
 
         // IMPRESSÃO DE RECIBO CORRIGIDA
