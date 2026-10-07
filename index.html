@@ -120,27 +120,50 @@
 
 	    <!-- ABA NOVA: EQUIPA / OPERADORES -->
             <div id="aba-equipe" class="tab-pane hidden">
-                <div class="bg-white p-6 md:p-8 rounded-lg shadow-md w-full max-w-lg mx-auto mt-6">
-                    <h1 class="text-2xl font-bold mb-6 text-gray-800 text-center">👥 Gestão de Equipa e Operadores</h1>
-                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 text-blue-700 text-sm">
-                        💡 Cadastre operadores para a sua loja. Os operadores terão acesso restrito às vendas e operações diárias do balcão.
+                <div class="max-w-4xl mx-auto space-y-8 mt-6">
+                    <!-- Formulário de Cadastro -->
+                    <div class="bg-white p-6 md:p-8 rounded-lg shadow-md w-full max-w-lg mx-auto">
+                        <h1 class="text-2xl font-bold mb-6 text-gray-800 text-center">👥 Cadastrar Novo Operador</h1>
+                        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 text-blue-700 text-sm">
+                            💡 Cadastre operadores para a sua loja. Os operadores terão acesso restrito às vendas.
+                        </div>
+                        <form id="operatorForm" class="space-y-4">
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-1">Nome do Operador</label>
+                                <input type="text" id="opName" required class="w-full border rounded p-2 focus:border-blue-500" placeholder="Nome completo">
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-1">E-mail de Acesso</label>
+                                <input type="email" id="opEmail" required class="w-full border rounded p-2 focus:border-blue-500" placeholder="operador@loja.com">
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-1">Palavra-passe</label>
+                                <input type="password" id="opPassword" required class="w-full border rounded p-2 focus:border-blue-500" placeholder="******">
+                            </div>
+                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded mt-4 shadow-md transition-colors">Criar Operador</button>
+                        </form>
+                        <div id="mensagemOperador" class="mt-4 text-center font-medium"></div>
                     </div>
-                    <form id="operatorForm" class="space-y-4">
-                        <div>
-                            <label class="block text-gray-700 font-medium mb-1">Nome do Operador</label>
-                            <input type="text" id="opName" required class="w-full border rounded p-2 focus:border-blue-500" placeholder="Nome completo">
+
+                    <!-- Tabela de Listagem de Membros da Equipa -->
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">📋 Membros da Equipa Ativos</h2>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse min-w-[600px]">
+                                <thead>
+                                    <tr class="bg-gray-100 border-b text-gray-700">
+                                        <th class="p-3 rounded-tl-lg">Nome</th>
+                                        <th class="p-3">E-mail</th>
+                                        <th class="p-3">Perfil / Cargo</th>
+                                        <th class="p-3 text-center rounded-tr-lg">Data de Registo</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelaEquipe" class="text-gray-600">
+                                    <!-- A lista de operadores aparecerá aqui -->
+                                </tbody>
+                            </table>
                         </div>
-                        <div>
-                            <label class="block text-gray-700 font-medium mb-1">E-mail de Acesso</label>
-                            <input type="email" id="opEmail" required class="w-full border rounded p-2 focus:border-blue-500" placeholder="operador@loja.com">
-                        </div>
-                        <div>
-                            <label class="block text-gray-700 font-medium mb-1">Palavra-passe</label>
-                            <input type="password" id="opPassword" required class="w-full border rounded p-2 focus:border-blue-500" placeholder="******">
-                        </div>
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded mt-4 shadow-md transition-colors">Criar Operador</button>
-                    </form>
-                    <div id="mensagemOperador" class="mt-4 text-center font-medium"></div>
+                    </div>
                 </div>
             </div>
 	    
@@ -412,7 +435,8 @@
                 carregarRelatorio();
                 carregarHistoricoVendas(); // Adicionamos esta linha
             }
-            if (tabId === 'aba-produtos') carregarProdutos(); 
+            if (tabId === 'aba-produtos') carregarProdutos();
+	    if (tabId === 'aba-equipe') carregarEquipe(); 
         }
 
         // 2. PRODUTOS E INVENTÁRIO
@@ -513,6 +537,40 @@
             }
         }
        
+	// --- FUNÇÃO PARA CARREGAR A LISTA DA EQUIPA ---
+        async function carregarEquipe() {
+            try {
+                const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/users');
+                const users = await res.json();
+                const tbody = document.getElementById('tabelaEquipe');
+                if (!tbody) return;
+                tbody.innerHTML = '';
+
+                if (!Array.isArray(users) || users.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-gray-500">Nenhum membro encontrado.</td></tr>';
+                    return;
+                }
+
+                users.forEach(u => {
+                    const dataFormatada = new Date(u.created_at).toLocaleDateString('pt-BR');
+                    const badgeRole = u.role === 'admin' 
+                        ? '<span class="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-bold">Administrador</span>' 
+                        : '<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">Operador</span>';
+
+                    tbody.innerHTML += `
+                        <tr class="border-b hover:bg-gray-50 transition-colors">
+                            <td class="p-3 font-medium text-gray-800">${u.name}</td>
+                            <td class="p-3 text-sm text-gray-600">${u.email}</td>
+                            <td class="p-3">${badgeRole}</td>
+                            <td class="p-3 text-center text-sm">${dataFormatada}</td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                console.error("Erro ao carregar equipa:", err);
+            }
+        }
+
 	// --- GESTÃO DE OPERADORES ---
         const opForm = document.getElementById('operatorForm');
         if (opForm) {
@@ -537,6 +595,7 @@
                         msg.className = "mt-4 text-green-600 text-center font-bold";
                         msg.innerText = "✅ Operador criado com sucesso!";
                         opForm.reset();
+			carregarEquipe(); // Atualiza a tabela instantaneamente
                         setTimeout(() => msg.innerText = '', 3000);
                     } else {
                         msg.className = "mt-4 text-red-600 text-center font-bold";
@@ -551,6 +610,7 @@
  
         // Carrega o inventário silenciosamente no arranque
         setTimeout(carregarProdutos, 1000);
+
 
         // --- 3. MOTOR DA FRENTE DE CAIXA (PDV) AVANÇADO ---
         let carrinhoPDV = [];
