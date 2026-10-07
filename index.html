@@ -287,6 +287,19 @@
 
     <!-- ==================== LÓGICA JAVASCRIPT ==================== -->
     <script>
+	
+	// --- REGISTO DO SERVICE WORKER (MODO OFFLINE) ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => {
+                        console.log('Service Worker registado com sucesso:', reg.scope);
+                    })
+                    .catch(err => {
+                        console.log('Falha ao registar o Service Worker:', err);
+                    });
+            });
+        }
 
 	// --- INJETOR AUTOMÁTICO DE TOKEN (INTERCEPTOR) ---
         // Anexa o "crachá" de segurança do utilizador a todos os pedidos enviados ao servidor
