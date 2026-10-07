@@ -219,6 +219,28 @@
                             <span id="totalEstoque" class="font-bold text-gray-900">0</span>
                         </div>
                     </div>
+
+		<!-- Tabela de Histórico de Vendas -->
+                <div class="bg-white p-6 rounded-lg shadow-md mt-6">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4">📜 Últimas Vendas</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[600px]">
+                            <thead>
+                                <tr class="bg-gray-100 border-b text-gray-700">
+                                    <th class="p-3 rounded-tl-lg">Data/Hora</th>
+                                    <th class="p-3">ID da Venda</th>
+                                    <th class="p-3">Pagamento</th>
+                                    <th class="p-3">Total</th>
+                                    <th class="p-3 text-center rounded-tr-lg">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaHistoricoVendas" class="text-gray-600">
+                                <!-- O histórico aparecerá aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 </div>
             </div>
 
@@ -297,8 +319,11 @@
             btnElement.classList.remove('text-gray-300', 'hover:text-white');
             btnElement.classList.add('bg-blue-600', 'text-white');
             
-            if (tabId === 'aba-relatorios') carregarRelatorio();
-            if (tabId === 'aba-produtos') carregarProdutos(); // Atualiza a tabela sempre que abrir a aba
+            if (tabId === 'aba-relatorios') {
+                carregarRelatorio();
+                carregarHistoricoVendas(); // Adicionamos esta linha
+            }
+            if (tabId === 'aba-produtos') carregarProdutos(); 
         }
 
         // 2. PRODUTOS E INVENTÁRIO
@@ -557,6 +582,49 @@
                 document.getElementById('totalEstoque').innerText = data.totalItensEstoque;
             } catch (err) {}
         }
+
+	// --- HISTÓRICO E REIMPRESSÃO ---
+        async function carregarHistoricoVendas() {
+            try {
+                const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/sales/history');
+                const vendas = await res.json();
+                const tbody = document.getElementById('tabelaHistoricoVendas');
+                tbody.innerHTML = '';
+                
+                if(!vendas || vendas.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-500">Nenhuma venda registada ainda.</td></tr>';
+                    return;
+                }
+
+                window.historicoVendas = vendas;
+
+                vendas.forEach((venda, index) => {
+                    const dataFormatada = new Date(venda.data).toLocaleString('pt-BR');
+                    tbody.innerHTML += `
+                        <tr class="border-b hover:bg-gray-50 transition-colors">
+                            <td class="p-3 text-sm">${dataFormatada}</td>
+                            <td class="p-3 text-xs text-gray-400" title="${venda.id}">${venda.id.substring(0,8)}...</td>
+                            <td class="p-3 uppercase text-sm">${venda.payment_method}</td>
+                            <td class="p-3 font-bold text-green-600">R$ ${parseFloat(venda.total_amount).toFixed(2)}</td>
+                            <td class="p-3 text-center">
+                                <button onclick="reimprimirVenda(${index})" class="text-blue-600 hover:text-blue-800 font-medium px-3 py-1 rounded border border-blue-200 hover:bg-blue-50 transition-colors text-sm">🖨️ Reimprimir</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                console.error("Erro ao carregar histórico:", err);
+                mostrarToast("Não foi possível carregar o histórico de vendas.", "erro");
+            }
+        }
+
+        function reimprimirVenda(index) {
+            const venda = window.historicoVendas[index];
+            if(!venda) return mostrarToast("Dados da venda não encontrados.", "erro");
+            
+            imprimirRecibo(venda.items, parseFloat(venda.total_amount), venda.payment_method);
+        }
+
     </script>
 </body>
 </html>
