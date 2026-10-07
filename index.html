@@ -948,21 +948,40 @@
             verificarEstadoCaixaUI();
         });
 
-        function verificarEstadoCaixaUI() {
+        async function verificarEstadoCaixaUI() {
             const painelFechado = document.getElementById('painelCaixaFechado');
             const painelAberto = document.getElementById('painelCaixaAberto');
             
-            if (caixaAtualId) {
-                painelFechado.classList.add('hidden');
-                painelAberto.classList.remove('hidden');
-                document.getElementById('infoCaixaAberto').innerText = `ID do Turno: ${caixaAtualId.substring(0,8)}...`;
-		const fundoSalvo = localStorage.getItem('pdv_fundo_inicial') || '0.00';
-                const elFundo = document.getElementById('infoFundoTroco');
-                if(elFundo) elFundo.innerText = `Fundo de Troco Inicial: R$ ${parseFloat(fundoSalvo).toFixed(2)}`;
-            } else {
-                painelFechado.classList.remove('hidden');
-                painelAberto.classList.add('hidden');
+            try {
+                // Pergunta ao servidor o estado real do caixa da loja
+                const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/cash/status');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.isOpen && data.cashRegister) {
+                        caixaAtualId = data.cashRegister.id;
+                        localStorage.setItem('pdv_caixa_id', caixaAtualId);
+                        localStorage.setItem('pdv_fundo_inicial', data.cashRegister.opening_balance);
+
+                        painelFechado.classList.add('hidden');
+                        painelAberto.classList.remove('hidden');
+                        document.getElementById('infoCaixaAberto').innerText = `ID do Turno: ${caixaAtualId.substring(0,8)}...`;
+                        
+                        const fundoSalvo = data.cashRegister.opening_balance;
+                        const elFundo = document.getElementById('infoFundoTroco');
+                        if(elFundo) elFundo.innerText = `Fundo de Troco Inicial: R$ ${parseFloat(fundoSalvo).toFixed(2)}`;
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.error("Erro ao verificar status do caixa no servidor:", err);
             }
+
+            // Se não houver caixa aberto no servidor
+            caixaAtualId = null;
+            localStorage.removeItem('pdv_caixa_id');
+            localStorage.removeItem('pdv_fundo_inicial');
+            painelFechado.classList.remove('hidden');
+            painelAberto.classList.add('hidden');
         }
 
         // Abertura de Caixa
