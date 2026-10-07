@@ -42,6 +42,7 @@
             <!-- Scroll horizontal no telemóvel para as abas -->
             <div class="flex gap-2 text-sm w-full md:w-auto overflow-x-auto pb-2 md:pb-0 justify-start md:justify-end whitespace-nowrap scrollbar-hide">
                 <button onclick="changeTab('aba-produtos', this)" class="tab-btn bg-blue-600 text-white px-4 py-2 rounded font-medium transition-colors">📦 Produtos</button>
+		<button onclick="changeTab('aba-equipe', this)" class="tab-btn text-gray-300 hover:text-white px-4 py-2 rounded font-medium transition-colors">👥 Equipa</button>
                 <button onclick="changeTab('aba-pdv', this)" class="tab-btn text-gray-300 hover:text-white px-4 py-2 rounded font-medium transition-colors">🛒 Frente de Caixa</button>
                 <button onclick="changeTab('aba-caixa', this)" class="tab-btn text-gray-300 hover:text-white px-4 py-2 rounded font-medium transition-colors">💵 Caixa</button>
                 <button onclick="changeTab('aba-relatorios', this)" class="tab-btn text-gray-300 hover:text-white px-4 py-2 rounded font-medium transition-colors">📊 Relatórios</button>
@@ -95,7 +96,7 @@
                     <div id="mensagemProduto" class="mt-4 text-center font-medium"></div>
                 </div>
 
-                <!-- NOVO: Tabela de Inventário -->
+                <!-- Tabela de Inventário -->
                 <div class="bg-white p-6 md:p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto mt-8 mb-8">
                     <h2 class="text-xl font-bold mb-4 text-gray-800">📋 Inventário Atual</h2>
                     <div class="overflow-x-auto">
@@ -117,27 +118,32 @@
                 </div>
             </div>
 
-	    <!-- PAINEL DE GESTÃO DE OPERADORES (Visível apenas para o Admin) -->
-            <div id="painelOperadores" class="bg-white p-6 md:p-8 rounded-lg shadow-md w-full max-w-lg mx-auto mt-8 mb-8">
-                <h1 class="text-2xl font-bold mb-6 text-gray-800 text-center">👥 Cadastrar Novo Operador</h1>
-                <form id="operatorForm" class="space-y-4">
-                    <div>
-                        <label class="block text-gray-700 font-medium mb-1">Nome do Operador</label>
-                        <input type="text" id="opName" required class="w-full border rounded p-2 focus:border-blue-500" placeholder="Nome completo">
+	    <!-- ABA NOVA: EQUIPA / OPERADORES -->
+            <div id="aba-equipe" class="tab-pane hidden">
+                <div class="bg-white p-6 md:p-8 rounded-lg shadow-md w-full max-w-lg mx-auto mt-6">
+                    <h1 class="text-2xl font-bold mb-6 text-gray-800 text-center">👥 Gestão de Equipa e Operadores</h1>
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 text-blue-700 text-sm">
+                        💡 Cadastre operadores para a sua loja. Os operadores terão acesso restrito às vendas e operações diárias do balcão.
                     </div>
-                    <div>
-                        <label class="block text-gray-700 font-medium mb-1">E-mail de Acesso</label>
-                        <input type="email" id="opEmail" required class="w-full border rounded p-2 focus:border-blue-500" placeholder="operador@loja.com">
-                    </div>
-                    <div>
-                        <label class="block text-gray-700 font-medium mb-1">Palavra-passe</label>
-                        <input type="password" id="opPassword" required class="w-full border rounded p-2 focus:border-blue-500" placeholder="******">
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded mt-4 shadow-md transition-colors">Criar Operador</button>
-                </form>
-                <div id="mensagemOperador" class="mt-4 text-center font-medium"></div>
+                    <form id="operatorForm" class="space-y-4">
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-1">Nome do Operador</label>
+                            <input type="text" id="opName" required class="w-full border rounded p-2 focus:border-blue-500" placeholder="Nome completo">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-1">E-mail de Acesso</label>
+                            <input type="email" id="opEmail" required class="w-full border rounded p-2 focus:border-blue-500" placeholder="operador@loja.com">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-1">Palavra-passe</label>
+                            <input type="password" id="opPassword" required class="w-full border rounded p-2 focus:border-blue-500" placeholder="******">
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded mt-4 shadow-md transition-colors">Criar Operador</button>
+                    </form>
+                    <div id="mensagemOperador" class="mt-4 text-center font-medium"></div>
+                </div>
             </div>
-
+	    
             <!-- ABA 2: FRENTE DE CAIXA (PDV) -->
             <div id="aba-pdv" class="tab-pane hidden">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 p-4 md:p-6 max-w-7xl mx-auto">
