@@ -252,6 +252,20 @@
 
     <!-- ==================== LÓGICA JAVASCRIPT ==================== -->
     <script>
+
+	// --- INJETOR AUTOMÁTICO DE TOKEN (INTERCEPTOR) ---
+        // Anexa o "crachá" de segurança do utilizador a todos os pedidos enviados ao servidor
+        const originalFetch = window.fetch;
+        window.fetch = async (url, options = {}) => {
+            if (typeof url === 'string' && url.includes('meu-pdv-backend-ruvs.onrender.com') && !url.includes('/login')) {
+                options.headers = {
+                    ...options.headers,
+                    'Authorization': 'Bearer ' + localStorage.getItem('pdv_token')
+                };
+            }
+            return originalFetch(url, options);
+        };
+
         // 0. LÓGICA DE LOGIN E SESSÃO
         
         // Verifica automaticamente se já existe um passe válido ao abrir o site
