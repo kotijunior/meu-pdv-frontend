@@ -265,12 +265,12 @@
 
                             <div class="space-y-3">
 
-		     <!-- Campo de Cliente -->
+		     <!-- Campo Inteligente de Cliente / CPF -->
                                 <div>
-                                    <label class="block text-gray-700 font-medium mb-1">Vincular Cliente (Opcional)</label>
-                                    <select id="clienteSelect" class="w-full border rounded p-3 font-medium text-gray-700">
-                                        <option value="">-- Cliente Padrão (Não Identificado) --</option>
-                                    </select>
+                                    <label class="block text-gray-700 font-medium mb-1">CPF na Nota / Cliente</label>
+                                    <input type="text" id="cpfClientePDV" oninput="buscarClientePorCPF()" class="w-full border rounded p-3 font-medium text-gray-700" placeholder="Digite o CPF...">
+                                    <div id="resultadoClientePDV" class="text-sm mt-1 font-bold min-h-[20px]"></div>
+                                    <input type="hidden" id="idClientePDV" value="">
                                 </div>		     
 
                                 <label class="block text-gray-700 font-medium">Forma de Pagamento</label>
@@ -787,26 +787,26 @@
             });
         }
 
+        // NOVO: Array para guardar clientes em memória para a busca super rápida
+        let clientesCadastrados = [];
+
         async function carregarClientes() {
             try {
                 const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/customers');
                 const clientes = await res.json();
                 const tbody = document.getElementById('tabelaClientes');
-                const selectPDV = document.getElementById('clienteSelect'); // NOVO
                 
-                if (selectPDV) { // NOVO: Limpa e preenche a caixa do PDV
-                    selectPDV.innerHTML = '<option value="">-- Cliente Padrão (Não Identificado) --</option>';
-                }
+                clientesCadastrados = Array.isArray(clientes) ? clientes : []; // Guarda na memória
 
                 if (!tbody) return;
                 tbody.innerHTML = '';
 
-                if (!Array.isArray(clientes) || clientes.length === 0) {
+                if (clientesCadastrados.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-gray-500">Nenhum cliente cadastrado.</td></tr>';
                     return;
                 }
 
-                clientes.forEach(c => {
+                clientesCadastrados.forEach(c => {
                     const dataFormatada = new Date(c.created_at).toLocaleDateString('pt-BR');
                     tbody.innerHTML += `
                         <tr class="border-b hover:bg-gray-50 transition-colors">
@@ -816,13 +816,33 @@
                             <td class="p-3 text-center text-sm">${dataFormatada}</td>
                         </tr>
                     `;
-                    // NOVO: Adiciona o cliente na dropdown da Frente de Caixa
-                    if (selectPDV) {
-                        selectPDV.innerHTML += `<option value="${c.id}">${c.name}</option>`;
-                    }
                 });
-            } catch (err) {
-                console.error("Erro ao carregar clientes:", err);
+            } catch (err) { console.error("Erro ao carregar clientes:", err); }
+        }
+
+        // NOVO: Função de busca inteligente enquanto o operador digita
+        function buscarClientePorCPF() {
+            const inputCpf = document.getElementById('cpfClientePDV').value.trim();
+            const resultado = document.getElementById('resultadoClientePDV');
+            const inputId = document.getElementById('idClientePDV');
+
+            if (inputCpf.length < 3) {
+                resultado.innerText = "";
+                inputId.value = "";
+                return;
+            }
+
+            // Procura um cliente que tenha exatamente o documento digitado
+            const cliente = clientesCadastrados.find(c => c.document && c.document.includes(inputCpf));
+            
+            if (cliente) {
+                resultado.innerText = `👤 Cliente reconhecido: ${cliente.name}`;
+                resultado.className = "text-sm mt-1 text-green-600 font-bold min-h-[20px]";
+                inputId.value = cliente.id;
+            } else {
+                resultado.innerText = "📝 CPF na Nota (Consumidor Final)";
+                resultado.className = "text-sm mt-1 text-gray-500 font-bold min-h-[20px]";
+                inputId.value = "";
             }
         }
 
@@ -994,10 +1014,17 @@
             const formaPag = document.getElementById('formaPagamento');
             const payment_method = formaPag ? formaPag.value : 'pix';
             
-            // NOVO: Captura o cliente selecionado
-            const clienteSelect = document.getElementById('clienteSelect');
-            const customer_id = clienteSelect && clienteSelect.value !== "" ? clienteSelect.value : null;
-            const customer_name = customer_id ? clienteSelect.options[clienteSelect.selectedIndex].text : "Consumidor Final";
+            // NOVO: Captura o cliente inteligente ou apenas o CPF
+            const inputCpf = document.getElementById('cpfClientePDV');
+            const inputId = document.getElementById('idClientePDV');
+            const customer_id = inputId && inputId.value !== "" ? inputId.value : null;
+            const customer_document = inputCpf ? inputCpf.value.trim() : "";
+            
+            let customer_name = "Consumidor Final";
+            if (customer_id) {
+                const cliente = clientesCadastrados.find(c => c.id === customer_id);
+                if (cliente) customer_name = cliente.name;
+            }
 
             if (payment_method === 'dinheiro') {
                 const valRec = document.getElementById('valorRecebido');
@@ -1011,37 +1038,45 @@
                 const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/sales', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    // NOVO: Envia customer_id no corpo
-                    body: JSON.stringify({ items: carrinhoPDV, payment_method, total_amount, customer_id })
+                    body: JSON.stringify({ items: carrinhoPDV, payment_method, total_amount, customer_id, customer_document })
                 });
 
                 if (res.ok) {
                     mostrarToast("Venda realizada com sucesso!", "sucesso");
                     
                     if (typeof imprimirRecibo === 'function') {
-                        imprimirRecibo(carrinhoPDV, total_amount, payment_method, customer_name); // NOVO
+                        imprimirRecibo(carrinhoPDV, total_amount, payment_method, customer_name, customer_document);
                     }
 
                     carrinhoPDV = [];
                     renderizarCarrinhoPDV();
                     const valRec = document.getElementById('valorRecebido');
                     if(valRec) valRec.value = '';
-                    if(clienteSelect) clienteSelect.value = ''; // NOVO: Limpa o cliente
+                    
+                    // Limpa o campo do cliente
+                    if(inputCpf) inputCpf.value = '';
+                    if(inputId) inputId.value = '';
+                    const resCli = document.getElementById('resultadoClientePDV');
+                    if(resCli) resCli.innerText = '';
                 } else {
                     const errData = await res.json();
                     mostrarToast(errData.error || "Erro ao registar venda", "erro");
                 }
             } catch (err) {
-                console.error(err);
                 mostrarToast("Erro de conexão ao finalizar venda.", "erro");
             }
         }
 
-        // IMPRESSÃO DE RECIBO CORRIGIDA
-        function imprimirRecibo(itens, total, pagamento, nomeCliente = "Consumidor Final") {
+        // IMPRESSÃO DE RECIBO CORRIGIDA E ADAPTADA AO CPF
+        function imprimirRecibo(itens, total, pagamento, nomeCliente = "Consumidor Final", documentoCliente = "") {
             const dataAtual = new Date().toLocaleString('pt-BR');
             const traduzPagamento = { 'pix': 'PIX', 'cartao_credito': 'Cartão Crédito', 'cartao_debito': 'Cartão Débito', 'dinheiro': 'Dinheiro' };
             
+            let infoCliente = `<p style="font-weight: bold; margin-top: 5px;">Cliente: ${nomeCliente}</p>`;
+            if (documentoCliente) {
+                infoCliente += `<p style="font-size: 12px; margin-top: 2px;">CPF/Doc: ${documentoCliente}</p>`;
+            }
+
             let htmlRecibo = `
             <!DOCTYPE html>
             <html lang="pt-BR">
@@ -1056,7 +1091,6 @@
                     .total { font-size: 15px; font-weight: bold; text-align: right; }
                     .acoes { margin-bottom: 20px; text-align: center; }
                     button { background-color: #2563eb; color: white; border: none; padding: 12px 24px; font-size: 16px; cursor: pointer; border-radius: 6px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-                    
                     @media print {
                         body { background-color: #fff; padding: 0; align-items: center; justify-content: flex-start; }
                         .recibo-container { box-shadow: none; border: none; width: 300px; padding: 20px 0; }
@@ -1074,7 +1108,7 @@
                         <h2>🚀 MeuPDV SaaS</h2>
                         <p>Recibo Não Fiscal</p>
                         <p>${dataAtual}</p>
-                        <p style="font-weight: bold; margin-top: 5px;">Cliente: ${nomeCliente}</p>
+                        ${infoCliente}
                     </div>
                     <div class="divisor"></div>
                     <div style="font-size: 13px; font-weight: bold;">Qtd | Item <span style="float:right;">Subtotal</span></div>
