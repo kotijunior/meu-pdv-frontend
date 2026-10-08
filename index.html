@@ -175,6 +175,9 @@
                     <div class="bg-white p-6 md:p-8 rounded-lg shadow-md w-full max-w-lg mx-auto">
                         <h1 class="text-2xl font-bold mb-6 text-gray-800 text-center">🤝 Cadastrar Cliente</h1>
                         <form id="customerForm" class="space-y-4">
+                            <!-- Campo oculto para saber se estamos a editar ou a criar -->
+                            <input type="hidden" id="custId">
+                            
                             <div>
                                 <label class="block text-gray-700 font-medium mb-1">Nome do Cliente *</label>
                                 <input type="text" id="custName" required class="w-full border rounded p-2 focus:border-blue-500" placeholder="Nome completo">
@@ -193,7 +196,10 @@
                                 <label class="block text-gray-700 font-medium mb-1">E-mail</label>
                                 <input type="email" id="custEmail" class="w-full border rounded p-2 focus:border-blue-500" placeholder="cliente@email.com">
                             </div>
-                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded mt-4 shadow-md transition-colors">Guardar Cliente</button>
+                            <div class="flex gap-2 mt-4">
+                                <button type="submit" id="btnSalvarCliente" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded shadow-md transition-colors">Guardar Cliente</button>
+                                <button type="button" id="btnCancelarEdicao" onclick="cancelarEdicaoCliente()" class="hidden w-full bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 rounded shadow-md transition-colors">Cancelar Edição</button>
+                            </div>
                         </form>
                     </div>
 
@@ -207,7 +213,8 @@
                                         <th class="p-3 rounded-tl-lg">Nome</th>
                                         <th class="p-3">Telefone</th>
                                         <th class="p-3">Documento</th>
-                                        <th class="p-3 text-center rounded-tr-lg">Data de Registo</th>
+                                        <th class="p-3 text-center">Data de Registo</th>
+                                        <th class="p-3 text-center rounded-tr-lg">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tabelaClientes" class="text-gray-600">
@@ -775,6 +782,8 @@
         if (customerForm) {
             customerForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                
+                const custId = document.getElementById('custId').value;
                 const payload = {
                     name: document.getElementById('custName').value,
                     phone: document.getElementById('custPhone').value,
@@ -782,20 +791,26 @@
                     email: document.getElementById('custEmail').value
                 };
 
+                // Se tiver custId, é uma atualização (PUT). Se não, é criação (POST)
+                const method = custId ? 'PUT' : 'POST';
+                const url = custId 
+                    ? `https://meu-pdv-backend-ruvs.onrender.com/api/customers/${custId}` 
+                    : 'https://meu-pdv-backend-ruvs.onrender.com/api/customers';
+
                 try {
-                    const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/customers', {
-                        method: 'POST',
+                    const res = await fetch(url, {
+                        method: method,
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
                     
                     if (res.ok) {
-                        mostrarToast("Cliente cadastrado com sucesso!", "sucesso");
-                        customerForm.reset();
+                        mostrarToast(custId ? "Cliente atualizado!" : "Cliente cadastrado!", "sucesso");
+                        cancelarEdicaoCliente(); // Limpa e restaura o formulário
                         carregarClientes();
                     } else {
                         const data = await res.json();
-                        mostrarToast(data.error || "Erro ao cadastrar cliente", "erro");
+                        mostrarToast(data.error || "Erro ao processar cliente", "erro");
                     }
                 } catch (err) {
                     mostrarToast("Erro de ligação ao servidor.", "erro");
@@ -811,14 +826,19 @@
                 const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/customers');
                 const clientes = await res.json();
                 const tbody = document.getElementById('tabelaClientes');
+                const selectPDV = document.getElementById('clienteSelect'); 
                 
-                clientesCadastrados = Array.isArray(clientes) ? clientes : []; // Guarda na memória
+                if (selectPDV) { 
+                    selectPDV.innerHTML = '<option value="">-- Cliente Padrão (Não Identificado) --</option>';
+                }
+
+                clientesCadastrados = Array.isArray(clientes) ? clientes : []; 
 
                 if (!tbody) return;
                 tbody.innerHTML = '';
 
                 if (clientesCadastrados.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-gray-500">Nenhum cliente cadastrado.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-500">Nenhum cliente cadastrado.</td></tr>';
                     return;
                 }
 
@@ -830,10 +850,66 @@
                             <td class="p-3 text-sm text-gray-600">${c.phone || '-'}</td>
                             <td class="p-3 text-sm text-gray-600">${c.document || '-'}</td>
                             <td class="p-3 text-center text-sm">${dataFormatada}</td>
+                            <td class="p-3 text-center">
+                                <button onclick="editarCliente('${c.id}')" class="text-blue-500 hover:text-blue-700 font-medium px-2 py-1 rounded border border-blue-200 hover:bg-blue-50 transition-colors text-xs mr-1">✏️ Editar</button>
+                                <button onclick="excluirCliente('${c.id}')" class="text-red-500 hover:text-red-700 font-medium px-2 py-1 rounded border border-red-200 hover:bg-red-50 transition-colors text-xs">🗑️ Excluir</button>
+                            </td>
                         </tr>
                     `;
+                    if (selectPDV) {
+                        selectPDV.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+                    }
                 });
             } catch (err) { console.error("Erro ao carregar clientes:", err); }
+        }
+
+        // --- FUNÇÕES DE EDIÇÃO E EXCLUSÃO DE CLIENTES ---
+        function editarCliente(id) {
+            const cliente = clientesCadastrados.find(c => c.id === id);
+            if (!cliente) return;
+
+            // Preenche o formulário com os dados
+            document.getElementById('custId').value = cliente.id;
+            document.getElementById('custName').value = cliente.name;
+            document.getElementById('custPhone').value = cliente.phone || '';
+            document.getElementById('custDoc').value = cliente.document || '';
+            document.getElementById('custEmail').value = cliente.email || '';
+
+            // Altera visualmente os botões
+            document.getElementById('btnSalvarCliente').innerText = "🔄 Atualizar Cliente";
+            document.getElementById('btnSalvarCliente').classList.replace("bg-blue-600", "bg-yellow-600");
+            document.getElementById('btnSalvarCliente').classList.replace("hover:bg-blue-700", "hover:bg-yellow-700");
+            document.getElementById('btnCancelarEdicao').classList.remove("hidden");
+            
+            // Rola a página para o formulário
+            document.getElementById('customerForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function cancelarEdicaoCliente() {
+            document.getElementById('customerForm').reset();
+            document.getElementById('custId').value = "";
+            
+            // Restaura os botões
+            document.getElementById('btnSalvarCliente').innerText = "Guardar Cliente";
+            document.getElementById('btnSalvarCliente').classList.replace("bg-yellow-600", "bg-blue-600");
+            document.getElementById('btnSalvarCliente').classList.replace("hover:bg-yellow-700", "hover:bg-blue-700");
+            document.getElementById('btnCancelarEdicao').classList.add("hidden");
+        }
+
+        async function excluirCliente(id) {
+            if(!confirm("Tem a certeza que deseja excluir este cliente?")) return;
+            try {
+                const res = await fetch(`https://meu-pdv-backend-ruvs.onrender.com/api/customers/${id}`, { method: 'DELETE' });
+                if(res.ok) {
+                    mostrarToast("Cliente apagado com sucesso!", "sucesso");
+                    carregarClientes(); 
+                } else {
+                    const data = await res.json();
+                    alert(data.error || "Erro ao excluir o cliente.");
+                }
+            } catch (err) {
+                alert("Erro de comunicação com o servidor.");
+            }
         }
 
         // NOVO: Função de busca inteligente enquanto o operador digita
