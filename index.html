@@ -186,7 +186,7 @@
                                 </div>
                                 <div>
                                     <label class="block text-gray-700 font-medium mb-1">CPF / NIF (Opcional)</label>
-                                    <input type="text" id="custDoc" class="w-full border rounded p-2 focus:border-blue-500" placeholder="Apenas números">
+                                    <input type="text" id="custDoc" oninput="mascaraCPF(this)" maxlength="14" class="w-full border rounded p-2 focus:border-blue-500" placeholder="000.000.000-00">
                                 </div>
                             </div>
                             <div>
@@ -268,7 +268,7 @@
 		     <!-- Campo Inteligente de Cliente / CPF -->
                                 <div>
                                     <label class="block text-gray-700 font-medium mb-1">CPF na Nota / Cliente</label>
-                                    <input type="text" id="cpfClientePDV" oninput="buscarClientePorCPF()" class="w-full border rounded p-3 font-medium text-gray-700" placeholder="Digite o CPF...">
+                                    <input type="text" id="cpfClientePDV" oninput="mascaraCPF(this); buscarClientePorCPF();" maxlength="14" class="w-full border rounded p-3 font-medium text-gray-700" placeholder="000.000.000-00">
                                     <div id="resultadoClientePDV" class="text-sm mt-1 font-bold min-h-[20px]"></div>
                                     <input type="hidden" id="idClientePDV" value="">
                                 </div>		     
@@ -631,6 +631,22 @@
                 toast.classList.add('translate-y-10', 'opacity-0');
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
+        }
+
+	// --- FUNÇÃO DE MÁSCARA PARA O CPF ---
+        function mascaraCPF(input) {
+            let v = input.value;
+            
+            // Remove tudo o que não for número
+            v = v.replace(/\D/g, "");
+            
+            // Aplica a formatação 000.000.000-00
+            v = v.replace(/(\d{3})(\d)/, "$1.$2");
+            v = v.replace(/(\d{3})(\d)/, "$1.$2");
+            v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+            
+            // Atualiza o valor no campo
+            input.value = v;
         }
 
         // --- CORREÇÃO DO CARREGAMENTO DE INVENTÁRIO ---
