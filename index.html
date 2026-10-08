@@ -284,6 +284,29 @@
             <div id="aba-relatorios" class="tab-pane hidden">
                 <div class="max-w-4xl mx-auto">
                     <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center md:text-left">📊 Resumo Gerencial</h1>
+		    
+		    <!-- Barra de Filtros de Data e Exportação -->
+                    <div class="bg-white p-4 rounded-lg shadow-md mb-6 flex flex-col md:flex-row gap-4 justify-between items-end border-l-4 border-gray-800">
+                        <div class="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-1">Data Inicial</label>
+                                <input type="date" id="filtroDataInicio" class="border rounded p-2 focus:border-blue-500 w-full md:w-40 text-sm text-gray-700">
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-1">Data Final</label>
+                                <input type="date" id="filtroDataFim" class="border rounded p-2 focus:border-blue-500 w-full md:w-40 text-sm text-gray-700">
+                            </div>
+                            <div class="flex items-end">
+                                <button onclick="aplicarFiltrosRelatorio()" class="bg-gray-800 hover:bg-gray-900 text-white font-bold py-2 px-6 rounded transition-colors w-full md:w-auto shadow">Filtrar</button>
+                            </div>
+                        </div>
+                        <div>
+                            <button onclick="exportarVendasCSV()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors w-full md:w-auto flex items-center justify-center gap-2 shadow">
+                                <span>📥</span> Exportar CSV
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-8">
                         <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
                             <p class="text-gray-500 font-medium">Faturamento Total</p>
@@ -944,9 +967,12 @@
         }
 
         // 5. RELATÓRIOS
-        async function carregarRelatorio() {
+        async function carregarRelatorio(start = '', end = '') {
             try {
-                const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/reports/summary');
+                let url = 'https://meu-pdv-backend-ruvs.onrender.com/api/reports/summary';
+                if (start && end) url += `?start=${start}&end=${end}`;
+
+                const res = await fetch(url);
                 const data = await res.json();
                 document.getElementById('faturamento').innerText = `R$ ${data.faturamentoTotal.toFixed(2)}`;
                 document.getElementById('vendas').innerText = data.totalVendas;
@@ -956,15 +982,19 @@
         }
 
 	// --- HISTÓRICO E REIMPRESSÃO ---
-        async function carregarHistoricoVendas() {
+        async function carregarHistoricoVendas(start = '', end = '') {
             try {
-                const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/sales/history');
+                let url = 'https://meu-pdv-backend-ruvs.onrender.com/api/sales/history';
+                if (start && end) url += `?start=${start}&end=${end}`;
+
+                const res = await fetch(url);
                 const vendas = await res.json();
                 const tbody = document.getElementById('tabelaHistoricoVendas');
                 tbody.innerHTML = '';
                 
                 if(!vendas || vendas.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-500">Nenhuma venda registada ainda.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-500">Nenhuma venda registada neste período.</td></tr>';
+                    window.historicoVendas = [];
                     return;
                 }
 
@@ -988,6 +1018,45 @@
                 console.error("Erro ao carregar histórico:", err);
                 mostrarToast("Não foi possível carregar o histórico de vendas.", "erro");
             }
+        }
+
+        // --- FILTROS E EXPORTAÇÃO CSV ---
+        function aplicarFiltrosRelatorio() {
+            const start = document.getElementById('filtroDataInicio').value;
+            const end = document.getElementById('filtroDataFim').value;
+            
+            if ((start && !end) || (!start && end)) {
+                return mostrarToast("Por favor, preencha a data inicial e final.", "erro");
+            }
+            
+            carregarRelatorio(start, end);
+            carregarHistoricoVendas(start, end);
+            mostrarToast("Filtros aplicados com sucesso!", "sucesso");
+        }
+
+        function exportarVendasCSV() {
+            if (!window.historicoVendas || window.historicoVendas.length === 0) {
+                return mostrarToast("Não há dados para exportar neste período.", "erro");
+            }
+
+            let csv = "Data/Hora,ID da Venda,Pagamento,Total (R$)\n";
+            
+            window.historicoVendas.forEach(v => {
+                const dataStr = new Date(v.data).toLocaleString('pt-BR').replace(',', '');
+                const idCurto = v.id.substring(0, 8);
+                const total = parseFloat(v.total_amount).toFixed(2);
+                csv += `${dataStr},${idCurto},${v.payment_method},${total}\n`;
+            });
+
+            // Cria e faz o download automático do ficheiro
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `relatorio_vendas_meupdv.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         function reimprimirVenda(index) {
