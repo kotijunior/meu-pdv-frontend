@@ -374,9 +374,37 @@
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('mainSystem').classList.remove('hidden');
                 document.getElementById('mainSystem').classList.add('flex');
+		
+		aplicarPermissoes();
             }
         };
 
+        // --- CONTROLO DE ACESSO (RESTRIÇÕES VISUAIS) ---
+        function aplicarPermissoes() {
+            const role = localStorage.getItem('pdv_user_role');
+            
+            // Localiza os botões pelo evento de clique
+            const btnProdutos = document.querySelector('button[onclick*="aba-produtos"]');
+            const btnEquipe = document.querySelector('button[onclick*="aba-equipe"]');
+            const btnRelatorios = document.querySelector('button[onclick*="aba-relatorios"]');
+            const btnPdv = document.querySelector('button[onclick*="aba-pdv"]');
+
+            if (role === 'operador') {
+                // Oculta completamente as ferramentas gerenciais
+                if (btnProdutos) btnProdutos.style.display = 'none';
+                if (btnEquipe) btnEquipe.style.display = 'none';
+                if (btnRelatorios) btnRelatorios.style.display = 'none';
+                
+                // Força o operador a ir direto para o PDV
+                if (btnPdv) btnPdv.click();
+            } else {
+                // Admin vê tudo
+                if (btnProdutos) btnProdutos.style.display = 'block';
+                if (btnEquipe) btnEquipe.style.display = 'block';
+                if (btnRelatorios) btnRelatorios.style.display = 'block';
+            }
+        }
+         
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value;
@@ -397,12 +425,14 @@
                     
                     // MÁGICA DA SESSÃO: Guarda o token recebido no navegador
                     localStorage.setItem('pdv_token', data.token);
+		    localStorage.setItem('pdv_user_role', data.user.role); // Guarda o nível de acesso
                     document.getElementById('password').value = ''; // Limpa a palavra-passe por segurança
 
                     setTimeout(() => {
                         document.getElementById('loginScreen').classList.add('hidden');
                         document.getElementById('mainSystem').classList.remove('hidden');
                         document.getElementById('mainSystem').classList.add('flex');
+			aplicarPermissoes(); // Aplica as regras de visualização
                         msg.innerText = ''; 
                     }, 500);
                 } else {
@@ -418,6 +448,9 @@
         // Função para destruir o passe e trancar o sistema
         function terminarSessao() {
             localStorage.removeItem('pdv_token');
+	    localStorage.removeItem('pdv_user_role');
+            localStorage.removeItem('pdv_caixa_id');
+            localStorage.removeItem('pdv_fundo_inicial');
             window.location.reload();
         }
 
