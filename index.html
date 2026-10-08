@@ -64,6 +64,10 @@
                 <div class="bg-white p-6 md:p-8 rounded-lg shadow-md w-full max-w-lg mx-auto">
                     <h1 class="text-2xl font-bold mb-6 text-gray-800 text-center">📦 Cadastro de Produtos</h1>
                     <form id="productForm" class="space-y-4">
+
+                        <!-- Campo oculto para saber se estamos a editar -->
+                        <input type="hidden" id="prodId">
+                        
                         <div>
                             <label class="block text-gray-700 font-medium mb-1">Nome do Produto</label>
                             <input type="text" id="name" required class="w-full border rounded p-2 focus:border-blue-500">
@@ -92,8 +96,12 @@
                                 <input type="text" id="category" class="w-full border rounded p-2 focus:border-blue-500">
                             </div>
                         </div>
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded mt-4 shadow-md transition-colors">Salvar no Banco</button>
+                        <div class="flex gap-2 mt-4">
+                            <button type="submit" id="btnSalvarProduto" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded shadow-md transition-colors">Salvar no Banco</button>
+                            <button type="button" id="btnCancelarEdicaoProduto" onclick="cancelarEdicaoProduto()" class="hidden w-full bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 rounded shadow-md transition-colors">Cancelar</button>
+                        </div>
                     </form>
+
                     <div id="mensagemProduto" class="mt-4 text-center font-medium"></div>
                 </div>
 
@@ -597,8 +605,11 @@
         }
 
         // 2. PRODUTOS E INVENTÁRIO
+        let produtosCadastrados = []; // Guarda os produtos em memória para edição rápida
+
         document.getElementById('productForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const prodId = document.getElementById('prodId').value;
             const payload = {
                 name: document.getElementById('name').value,
                 barcode: document.getElementById('barcode').value,
@@ -607,18 +618,55 @@
                 stock_quantity: parseInt(document.getElementById('stock_quantity').value),
                 category: document.getElementById('category').value
             };
+            
+            // Se tiver prodId, é uma atualização (PUT). Se não, é criação (POST)
+            const method = prodId ? 'PUT' : 'POST';
+            const url = prodId 
+                ? `https://meu-pdv-backend-ruvs.onrender.com/api/products/${prodId}` 
+                : 'https://meu-pdv-backend-ruvs.onrender.com/api/products';
+
             try {
-                const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                 if (res.ok) {
-                    const msg = document.getElementById('mensagemProduto');
-                    msg.className = "mt-4 text-green-600 text-center font-bold";
-                    msg.innerText = "✅ Cadastrado com sucesso!";
-                    document.getElementById('productForm').reset();
-                    carregarProdutos(); // Insere o produto na tabela instantaneamente
-                    setTimeout(() => msg.innerText = '', 3000); // Limpa a mensagem após 3 seg
+                    mostrarToast(prodId ? "Produto atualizado!" : "Produto cadastrado!", "sucesso");
+                    cancelarEdicaoProduto();
+                    carregarProdutos(); 
+                } else {
+                    const data = await res.json();
+                    mostrarToast(data.error || "Erro ao guardar produto", "erro");
                 }
             } catch (err) { alert("Erro de conexão."); }
         });
+
+        // --- FUNÇÕES DE EDIÇÃO DE PRODUTOS ---
+        function editarProduto(id) {
+            const produto = produtosCadastrados.find(p => p.id === id);
+            if (!produto) return;
+
+            document.getElementById('prodId').value = produto.id;
+            document.getElementById('name').value = produto.name;
+            document.getElementById('barcode').value = produto.barcode || '';
+            document.getElementById('cost_price').value = produto.cost_price;
+            document.getElementById('sale_price').value = produto.sale_price;
+            document.getElementById('stock_quantity').value = produto.stock_quantity;
+            document.getElementById('category').value = produto.category || '';
+
+            document.getElementById('btnSalvarProduto').innerText = "🔄 Atualizar Produto";
+            document.getElementById('btnSalvarProduto').classList.replace("bg-blue-600", "bg-yellow-600");
+            document.getElementById('btnSalvarProduto').classList.replace("hover:bg-blue-700", "hover:bg-yellow-700");
+            document.getElementById('btnCancelarEdicaoProduto').classList.remove("hidden");
+            
+            document.getElementById('productForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function cancelarEdicaoProduto() {
+            document.getElementById('productForm').reset();
+            document.getElementById('prodId').value = "";
+            document.getElementById('btnSalvarProduto').innerText = "Salvar no Banco";
+            document.getElementById('btnSalvarProduto').classList.replace("bg-yellow-600", "bg-blue-600");
+            document.getElementById('btnSalvarProduto').classList.replace("hover:bg-yellow-700", "hover:bg-blue-700");
+            document.getElementById('btnCancelarEdicaoProduto').classList.add("hidden");
+        }
 
         // --- MOTOR DE NOTIFICAÇÕES (TOASTS) ---
         function mostrarToast(mensagem, tipo = 'sucesso') {
@@ -644,19 +692,13 @@
             }, 3000);
         }
 
-	// --- FUNÇÃO DE MÁSCARA PARA O CPF ---
+        // --- FUNÇÃO DE MÁSCARA PARA O CPF ---
         function mascaraCPF(input) {
             let v = input.value;
-            
-            // Remove tudo o que não for número
             v = v.replace(/\D/g, "");
-            
-            // Aplica a formatação 000.000.000-00
             v = v.replace(/(\d{3})(\d)/, "$1.$2");
             v = v.replace(/(\d{3})(\d)/, "$1.$2");
             v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-            
-            // Atualiza o valor no campo
             input.value = v;
         }
 
@@ -668,6 +710,7 @@
                 
                 // MÁGICA: Se o back-end enviar um objeto com os produtos lá dentro, nós extraímos corretamente
                 const produtos = Array.isArray(resposta) ? resposta : (resposta.produtos || resposta.products || resposta.rows || []);
+                produtosCadastrados = produtos; // Guarda em memória para a edição
                 
                 const tbody = document.getElementById('tabelaProdutos');
                 tbody.innerHTML = '';
@@ -690,7 +733,8 @@
                             <td class="p-3">${stockVisual}</td>
                             <td class="p-3 font-bold text-blue-600">R$ ${parseFloat(p.sale_price).toFixed(2)}</td>
                             <td class="p-3 text-center">
-                                <button onclick="excluirProduto('${p.id}')" class="text-red-500 hover:text-red-700 font-medium px-3 py-1 rounded border border-red-200 hover:bg-red-50 transition-colors text-sm">🗑️ Excluir</button>
+                                <button onclick="editarProduto('${p.id}')" class="text-blue-500 hover:text-blue-700 font-medium px-2 py-1 rounded border border-blue-200 hover:bg-blue-50 transition-colors text-xs mr-1">✏️ Editar</button>
+                                <button onclick="excluirProduto('${p.id}')" class="text-red-500 hover:text-red-700 font-medium px-2 py-1 rounded border border-red-200 hover:bg-red-50 transition-colors text-xs">🗑️ Excluir</button>
                             </td>
                         </tr>
                     `;
@@ -1260,8 +1304,8 @@
                 document.getElementById('vendas').innerText = data.totalVendas;
                 document.getElementById('totalProd').innerText = data.totalProdutosCadastrados;
                 document.getElementById('totalEstoque').innerText = data.totalItensEstoque;
-                const elAlerta = document.getElementById('alertaStock'); // NOVO
-                if(elAlerta) elAlerta.innerText = data.stockBaixo; // NOVO
+                const elAlerta = document.getElementById('alertaStock'); 
+                if(elAlerta) elAlerta.innerText = data.stock_baixo; // CORRIGIDO PARA O NOME EXATO DO BACK-END
             } catch (err) {}
         }
 
