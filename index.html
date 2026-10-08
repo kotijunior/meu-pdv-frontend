@@ -43,6 +43,7 @@
             <div class="flex gap-2 text-sm w-full md:w-auto overflow-x-auto pb-2 md:pb-0 justify-start md:justify-end whitespace-nowrap scrollbar-hide">
                 <button onclick="changeTab('aba-produtos', this)" class="tab-btn bg-blue-600 text-white px-4 py-2 rounded font-medium transition-colors">📦 Produtos</button>
 		<button onclick="changeTab('aba-equipe', this)" class="tab-btn text-gray-300 hover:text-white px-4 py-2 rounded font-medium transition-colors">👥 Equipa</button>
+		<button onclick="changeTab('aba-clientes', this)" class="tab-btn text-gray-300 hover:text-white px-4 py-2 rounded font-medium transition-colors">🤝 Clientes</button>
                 <button onclick="changeTab('aba-pdv', this)" class="tab-btn text-gray-300 hover:text-white px-4 py-2 rounded font-medium transition-colors">🛒 Frente de Caixa</button>
                 <button onclick="changeTab('aba-caixa', this)" class="tab-btn text-gray-300 hover:text-white px-4 py-2 rounded font-medium transition-colors">💵 Caixa</button>
                 <button onclick="changeTab('aba-relatorios', this)" class="tab-btn text-gray-300 hover:text-white px-4 py-2 rounded font-medium transition-colors">📊 Relatórios</button>
@@ -166,7 +167,58 @@
                     </div>
                 </div>
             </div>
-	    
+	
+	    <!-- ABA NOVA: CLIENTES (CRM) -->
+            <div id="aba-clientes" class="tab-pane hidden">
+                <div class="max-w-4xl mx-auto space-y-8 mt-6">
+                    <!-- Formulário de Cadastro -->
+                    <div class="bg-white p-6 md:p-8 rounded-lg shadow-md w-full max-w-lg mx-auto">
+                        <h1 class="text-2xl font-bold mb-6 text-gray-800 text-center">🤝 Cadastrar Cliente</h1>
+                        <form id="customerForm" class="space-y-4">
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-1">Nome do Cliente *</label>
+                                <input type="text" id="custName" required class="w-full border rounded p-2 focus:border-blue-500" placeholder="Nome completo">
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-gray-700 font-medium mb-1">Telefone / WhatsApp</label>
+                                    <input type="text" id="custPhone" class="w-full border rounded p-2 focus:border-blue-500" placeholder="(11) 99999-9999">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 font-medium mb-1">CPF / NIF (Opcional)</label>
+                                    <input type="text" id="custDoc" class="w-full border rounded p-2 focus:border-blue-500">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-1">E-mail</label>
+                                <input type="email" id="custEmail" class="w-full border rounded p-2 focus:border-blue-500" placeholder="cliente@email.com">
+                            </div>
+                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded mt-4 shadow-md transition-colors">Guardar Cliente</button>
+                        </form>
+                    </div>
+
+                    <!-- Tabela de Listagem -->
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-bold mb-4 text-gray-800">📋 Base de Clientes</h2>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse min-w-[600px]">
+                                <thead>
+                                    <tr class="bg-gray-100 border-b text-gray-700">
+                                        <th class="p-3 rounded-tl-lg">Nome</th>
+                                        <th class="p-3">Telefone</th>
+                                        <th class="p-3">Documento</th>
+                                        <th class="p-3 text-center rounded-tr-lg">Data de Registo</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelaClientes" class="text-gray-600">
+                                    <!-- A lista de clientes aparecerá aqui -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    
             <!-- ABA 2: FRENTE DE CAIXA (PDV) -->
             <div id="aba-pdv" class="tab-pane hidden">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 p-4 md:p-6 max-w-7xl mx-auto">
@@ -520,7 +572,8 @@
 		carregarHistoricoCaixas(); // Carrega a auditoria de caixas
             }
             if (tabId === 'aba-produtos') carregarProdutos();
-	    if (tabId === 'aba-equipe') carregarEquipe(); 
+	    if (tabId === 'aba-equipe') carregarEquipe();
+	    if (tabId === 'aba-clientes') carregarClientes(); 
         }
 
         // 2. PRODUTOS E INVENTÁRIO
@@ -692,6 +745,68 @@
             });
         }
  
+	// --- MÓDULO CRM (GESTÃO DE CLIENTES) ---
+        const customerForm = document.getElementById('customerForm');
+        if (customerForm) {
+            customerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const payload = {
+                    name: document.getElementById('custName').value,
+                    phone: document.getElementById('custPhone').value,
+                    document: document.getElementById('custDoc').value,
+                    email: document.getElementById('custEmail').value
+                };
+
+                try {
+                    const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/customers', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (res.ok) {
+                        mostrarToast("Cliente cadastrado com sucesso!", "sucesso");
+                        customerForm.reset();
+                        carregarClientes();
+                    } else {
+                        const data = await res.json();
+                        mostrarToast(data.error || "Erro ao cadastrar cliente", "erro");
+                    }
+                } catch (err) {
+                    mostrarToast("Erro de ligação ao servidor.", "erro");
+                }
+            });
+        }
+
+        async function carregarClientes() {
+            try {
+                const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/customers');
+                const clientes = await res.json();
+                const tbody = document.getElementById('tabelaClientes');
+                if (!tbody) return;
+                tbody.innerHTML = '';
+
+                if (!Array.isArray(clientes) || clientes.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-gray-500">Nenhum cliente cadastrado.</td></tr>';
+                    return;
+                }
+
+                clientes.forEach(c => {
+                    const dataFormatada = new Date(c.created_at).toLocaleDateString('pt-BR');
+                    tbody.innerHTML += `
+                        <tr class="border-b hover:bg-gray-50 transition-colors">
+                            <td class="p-3 font-medium text-gray-800">${c.name}</td>
+                            <td class="p-3 text-sm text-gray-600">${c.phone || '-'}</td>
+                            <td class="p-3 text-sm text-gray-600">${c.document || '-'}</td>
+                            <td class="p-3 text-center text-sm">${dataFormatada}</td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                console.error("Erro ao carregar clientes:", err);
+            }
+        }
+
         // Carrega o inventário silenciosamente no arranque
         setTimeout(carregarProdutos, 1000);
 
