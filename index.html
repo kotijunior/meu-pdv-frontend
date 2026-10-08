@@ -264,6 +264,15 @@
                             </div>
 
                             <div class="space-y-3">
+
+		     <!-- Campo de Cliente -->
+                                <div>
+                                    <label class="block text-gray-700 font-medium mb-1">Vincular Cliente (Opcional)</label>
+                                    <select id="clienteSelect" class="w-full border rounded p-3 font-medium text-gray-700">
+                                        <option value="">-- Cliente Padrão (Não Identificado) --</option>
+                                    </select>
+                                </div>		     
+
                                 <label class="block text-gray-700 font-medium">Forma de Pagamento</label>
                                 <select id="formaPagamento" class="w-full border rounded p-3 font-medium">
                                     <option value="pix">PIX</option>
@@ -783,6 +792,12 @@
                 const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/customers');
                 const clientes = await res.json();
                 const tbody = document.getElementById('tabelaClientes');
+                const selectPDV = document.getElementById('clienteSelect'); // NOVO
+                
+                if (selectPDV) { // NOVO: Limpa e preenche a caixa do PDV
+                    selectPDV.innerHTML = '<option value="">-- Cliente Padrão (Não Identificado) --</option>';
+                }
+
                 if (!tbody) return;
                 tbody.innerHTML = '';
 
@@ -801,14 +816,21 @@
                             <td class="p-3 text-center text-sm">${dataFormatada}</td>
                         </tr>
                     `;
+                    // NOVO: Adiciona o cliente na dropdown da Frente de Caixa
+                    if (selectPDV) {
+                        selectPDV.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+                    }
                 });
             } catch (err) {
                 console.error("Erro ao carregar clientes:", err);
             }
         }
 
-        // Carrega o inventário silenciosamente no arranque
-        setTimeout(carregarProdutos, 1000);
+        // Carrega o inventário e os clientes silenciosamente no arranque
+        setTimeout(() => {
+            carregarProdutos();
+            carregarClientes();
+        }, 1000);
 
 
         // --- 3. MOTOR DA FRENTE DE CAIXA (PDV) AVANÇADO ---
@@ -971,6 +993,11 @@
             const total_amount = carrinhoPDV.reduce((acc, item) => acc + item.subtotal, 0);
             const formaPag = document.getElementById('formaPagamento');
             const payment_method = formaPag ? formaPag.value : 'pix';
+            
+            // NOVO: Captura o cliente selecionado
+            const clienteSelect = document.getElementById('clienteSelect');
+            const customer_id = clienteSelect && clienteSelect.value !== "" ? clienteSelect.value : null;
+            const customer_name = customer_id ? clienteSelect.options[clienteSelect.selectedIndex].text : "Consumidor Final";
 
             if (payment_method === 'dinheiro') {
                 const valRec = document.getElementById('valorRecebido');
@@ -984,20 +1011,22 @@
                 const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/sales', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ items: carrinhoPDV, payment_method, total_amount })
+                    // NOVO: Envia customer_id no corpo
+                    body: JSON.stringify({ items: carrinhoPDV, payment_method, total_amount, customer_id })
                 });
 
                 if (res.ok) {
                     mostrarToast("Venda realizada com sucesso!", "sucesso");
                     
                     if (typeof imprimirRecibo === 'function') {
-                        imprimirRecibo(carrinhoPDV, total_amount, payment_method);
+                        imprimirRecibo(carrinhoPDV, total_amount, payment_method, customer_name); // NOVO
                     }
 
                     carrinhoPDV = [];
                     renderizarCarrinhoPDV();
                     const valRec = document.getElementById('valorRecebido');
                     if(valRec) valRec.value = '';
+                    if(clienteSelect) clienteSelect.value = ''; // NOVO: Limpa o cliente
                 } else {
                     const errData = await res.json();
                     mostrarToast(errData.error || "Erro ao registar venda", "erro");
@@ -1009,9 +1038,9 @@
         }
 
         // IMPRESSÃO DE RECIBO CORRIGIDA
-        function imprimirRecibo(itens, total, pagamento) {
+        function imprimirRecibo(itens, total, pagamento, nomeCliente = "Consumidor Final") {
             const dataAtual = new Date().toLocaleString('pt-BR');
-            const traduzPagamento = { 'pix': 'PIX', 'credit': 'Cartão', 'cash': 'Dinheiro' };
+            const traduzPagamento = { 'pix': 'PIX', 'cartao_credito': 'Cartão Crédito', 'cartao_debito': 'Cartão Débito', 'dinheiro': 'Dinheiro' };
             
             let htmlRecibo = `
             <!DOCTYPE html>
@@ -1029,7 +1058,6 @@
                     button { background-color: #2563eb; color: white; border: none; padding: 12px 24px; font-size: 16px; cursor: pointer; border-radius: 6px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
                     
                     @media print {
-                        /* ALINHAMENTO CORRIGIDO: centraliza horizontalmente na folha A4 */
                         body { background-color: #fff; padding: 0; align-items: center; justify-content: flex-start; }
                         .recibo-container { box-shadow: none; border: none; width: 300px; padding: 20px 0; }
                         .no-print { display: none !important; }
@@ -1046,6 +1074,7 @@
                         <h2>🚀 MeuPDV SaaS</h2>
                         <p>Recibo Não Fiscal</p>
                         <p>${dataAtual}</p>
+                        <p style="font-weight: bold; margin-top: 5px;">Cliente: ${nomeCliente}</p>
                     </div>
                     <div class="divisor"></div>
                     <div style="font-size: 13px; font-weight: bold;">Qtd | Item <span style="float:right;">Subtotal</span></div>
