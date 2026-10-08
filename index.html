@@ -1104,17 +1104,31 @@
                 return mostrarToast("Não há dados para exportar.", "erro");
             }
 
-            // CORREÇÃO EXCEL BRASIL/PORTUGAL: Usar ponto e vírgula (;)
-            let csv = "Data/Hora;ID da Venda;Pagamento;Total (R$)\n";
+            const dataAtual = new Date().toLocaleString('pt-BR');
             
+            // Título e Cabeçalhos (os ;;; garantem que o título não desalinhe as colunas)
+            let csv = `🚀 MeuPDV SaaS - Resumo Gerencial de Vendas (Gerado em: ${dataAtual});;;\n\n`;
+            csv += "Data/Hora;ID da Venda;Pagamento;Total (R$)\n";
+            
+            let somaTotal = 0;
+
             window.historicoVendas.forEach(v => {
                 const dataStr = new Date(v.data).toLocaleString('pt-BR');
                 const idCurto = v.id.substring(0, 8);
-                const total = parseFloat(v.total_amount).toFixed(2);
-                csv += `${dataStr};${idCurto};${v.payment_method};${total}\n`;
+                const valorNumerico = parseFloat(v.total_amount);
+                somaTotal += valorNumerico;
+                
+                // MÁGICA EXCEL: Troca o ponto por vírgula para permitir Autossoma
+                const totalFormatado = valorNumerico.toFixed(2).replace('.', ',');
+                
+                csv += `${dataStr};${idCurto};${v.payment_method};${totalFormatado}\n`;
             });
 
-            // O \ufeff força o Excel a reconhecer os caracteres UTF-8 (como o R$)
+            // Linha de Total no final
+            const totalGeralFormatado = somaTotal.toFixed(2).replace('.', ',');
+            csv += `\n;;FATURAMENTO TOTAL DO PERÍODO:;${totalGeralFormatado}\n`;
+
+            // O \ufeff força o Excel a reconhecer os caracteres UTF-8 (como o R$ e acentos)
             const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
