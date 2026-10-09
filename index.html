@@ -1300,13 +1300,24 @@
 
                 const res = await fetch(url);
                 const data = await res.json();
+                
+                // Exibe no console do navegador o que o servidor enviou (ajuda a debugar)
+                console.log("Dados do Relatório Recebidos:", data);
+
                 document.getElementById('faturamento').innerText = `R$ ${data.faturamentoTotal.toFixed(2)}`;
                 document.getElementById('vendas').innerText = data.totalVendas;
                 document.getElementById('totalProd').innerText = data.totalProdutosCadastrados;
                 document.getElementById('totalEstoque').innerText = data.totalItensEstoque;
-                const elAlerta = document.getElementById('alertaStock'); 
-                if(elAlerta) elAlerta.innerText = data.stock_baixo; // CORRIGIDO PARA O NOME EXATO DO BACK-END
-            } catch (err) {}
+                
+                const elAlerta = document.getElementById('alertaStock');
+                if(elAlerta) {
+                    // Verifica se veio stock_baixo ou stockBaixo e preenche (se não vier nenhum, mete 0)
+                    const emFalta = data.stock_baixo !== undefined ? data.stock_baixo : (data.stockBaixo || 0);
+                    elAlerta.innerText = emFalta;
+                }
+            } catch (err) {
+                console.error("Erro ao carregar relatório:", err);
+            }
         }
 
 	    // --- HISTÓRICO E REIMPRESSÃO ---
