@@ -302,13 +302,15 @@
                                 <label class="block text-gray-700 font-medium">Forma de Pagamento</label>
                                 </div>		     
 
-                                <label class="block text-gray-700 font-medium">Forma de Pagamento</label>
-                                <select id="formaPagamento" class="w-full border rounded p-3 font-medium">
-                                    <option value="pix">PIX</option>
-                                    <option value="dinheiro">Dinheiro</option>
-                                    <option value="cartao_debito">Cartão de Débito</option>
-                                    <option value="cartao_credito">Cartão de Crédito</option>
-                                </select>
+                                <div>
+                                    <label class="block text-gray-700 font-medium mb-1">Forma de Pagamento</label>
+                                    <select id="formaPagamento" class="w-full border rounded p-3 font-medium">
+                                        <option value="pix">PIX</option>
+                                        <option value="dinheiro">Dinheiro</option>
+                                        <option value="cartao_debito">Cartão de Débito</option>
+                                        <option value="cartao_credito">Cartão de Crédito</option>
+                                    </select>
+                                </div>
 
                                 <!-- Campo de Dinheiro / Troco -->
                                 <div id="containerDinheiro" class="hidden space-y-2 pt-2">
@@ -333,8 +335,9 @@
 
             <!-- ABA 3: CAIXA -->
             <div id="aba-caixa" class="tab-pane hidden">
-                <div class="bg-white p-6 md:p-8 rounded-lg shadow-md w-full max-w-lg mx-auto">
-                    <h1 class="text-2xl font-bold mb-6 text-gray-800 text-center">💵 Gestão de Caixa</h1>
+                <div class="max-w-xl mx-auto mt-6">
+                    <div class="bg-white p-6 md:p-8 rounded-lg shadow-md w-full">
+                        <h1 class="text-2xl font-bold mb-6 text-gray-800 text-center">💵 Gestão de Caixa</h1>
                     
                     <!-- ESTADO 1: CAIXA FECHADO (Formulário de Abertura) -->
                     <div id="painelCaixaFechado">
@@ -372,7 +375,7 @@
 
             <!-- ABA 4: RELATÓRIOS -->
             <div id="aba-relatorios" class="tab-pane hidden">
-                <div class="max-w-4xl mx-auto">
+                <div class="max-w-5xl mx-auto mt-6 pb-20">
                     <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center md:text-left">📊 Resumo Gerencial</h1>
 		    
 		    <!-- Barra de Filtros de Data e Exportação -->
@@ -475,7 +478,7 @@
 
     <!-- ABA NOVA: CONFIGURAÇÕES DA LOJA -->
             <div id="aba-config" class="tab-pane hidden">
-                <div class="max-w-xl mx-auto space-y-8 mt-6">
+                <div class="max-w-xl mx-auto mt-6">
                     <div class="bg-white p-6 md:p-8 rounded-lg shadow-md w-full">
                         <h1 class="text-2xl font-bold mb-6 text-gray-800 text-center">⚙️ Configurações do Sistema</h1>
                         <form id="configForm" class="space-y-4">
