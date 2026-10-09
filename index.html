@@ -539,6 +539,14 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const msg = document.getElementById('msgLogin');
+            const btnSubmit = e.target.querySelector('button[type="submit"]');
+
+            // NOVO: Feedback visual enquanto o Render "acorda"
+            msg.className = "mt-4 text-center font-medium text-blue-600";
+            msg.innerText = "⏳ A ligar ao servidor (pode demorar cerca de 1 minuto a acordar)...";
+            btnSubmit.disabled = true;
+            btnSubmit.classList.replace('bg-gray-800', 'bg-gray-400');
+            btnSubmit.innerText = "A carregar...";
 
             try {
                 const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/auth/login', {
@@ -548,20 +556,24 @@
                 });
                 const data = await res.json();
 
+                // Restaura o botão
+                btnSubmit.disabled = false;
+                btnSubmit.classList.replace('bg-gray-400', 'bg-gray-800');
+                btnSubmit.innerText = "Entrar no Sistema";
+
                 if (res.ok) {
                     msg.className = "mt-4 text-center font-medium text-green-600";
                     msg.innerText = `✅ Bem-vindo, ${data.user.name}!`;
                     
-                    // MÁGICA DA SESSÃO: Guarda o token recebido no navegador
                     localStorage.setItem('pdv_token', data.token);
-		    localStorage.setItem('pdv_user_role', data.user.role); // Guarda o nível de acesso
-                    document.getElementById('password').value = ''; // Limpa a palavra-passe por segurança
+                    localStorage.setItem('pdv_user_role', data.user.role); 
+                    document.getElementById('password').value = ''; 
 
                     setTimeout(() => {
                         document.getElementById('loginScreen').classList.add('hidden');
                         document.getElementById('mainSystem').classList.remove('hidden');
                         document.getElementById('mainSystem').classList.add('flex');
-			aplicarPermissoes(); // Aplica as regras de visualização
+                        aplicarPermissoes(); 
                         msg.innerText = ''; 
                     }, 500);
                 } else {
@@ -569,8 +581,11 @@
                     msg.innerText = "❌ " + (data.error || "Acesso negado");
                 }
             } catch (err) {
+                btnSubmit.disabled = false;
+                btnSubmit.classList.replace('bg-gray-400', 'bg-gray-800');
+                btnSubmit.innerText = "Entrar no Sistema";
                 msg.className = "mt-4 text-center font-medium text-red-600";
-                msg.innerText = "❌ Erro de ligação ao servidor.";
+                msg.innerText = "❌ Servidor a despertar, por favor tente novamente.";
             }
         });
 
