@@ -47,6 +47,7 @@
                 <button onclick="changeTab('aba-pdv', this)" class="tab-btn text-gray-300 hover:text-white px-4 py-2 rounded font-medium transition-colors">🛒 Frente de Caixa</button>
                 <button onclick="changeTab('aba-caixa', this)" class="tab-btn text-gray-300 hover:text-white px-4 py-2 rounded font-medium transition-colors">💵 Caixa</button>
                 <button onclick="changeTab('aba-relatorios', this)" class="tab-btn text-gray-300 hover:text-white px-4 py-2 rounded font-medium transition-colors">📊 Relatórios</button>
+		<button onclick="changeTab('aba-config', this)" class="tab-btn text-gray-300 hover:text-white px-4 py-2 rounded font-medium transition-colors">⚙️ Configurações</button>
             </div>
 
 	    <div class="font-bold text-lg flex items-center gap-2 w-full md:w-auto justify-center md:justify-start">
@@ -286,6 +287,19 @@
                                     <input type="text" id="cpfClientePDV" oninput="mascaraCPF(this); buscarClientePorCPF();" maxlength="14" class="w-full border rounded p-3 font-medium text-gray-700" placeholder="000.000.000-00">
                                     <div id="resultadoClientePDV" class="text-sm mt-1 font-bold min-h-[20px]"></div>
                                     <input type="hidden" id="idClientePDV" value="">
+				    <input type="hidden" id="saldoCashbackPDV" value="0">
+                                </div>
+                                
+                                <!-- NOVO: Aviso de Cashback Disponível (Invisível por defeito) -->
+                                <div id="boxCashback" class="hidden bg-green-50 border border-green-200 p-3 rounded-md flex justify-between items-center transition-all">
+                                    <div>
+                                        <span class="text-xs text-green-800 font-bold block uppercase tracking-wider">Saldo Fidelidade:</span>
+                                        <span id="valorCashbackDisponivel" class="text-lg font-bold text-green-600">R$ 0,00</span>
+                                    </div>
+                                    <button id="btnUsarCashback" onclick="toggleUsoCashback()" class="bg-green-600 text-white px-3 py-1 rounded text-sm font-bold shadow hover:bg-green-700 transition-colors">Usar Saldo</button>
+                                </div>
+
+                                <label class="block text-gray-700 font-medium">Forma de Pagamento</label>
                                 </div>		     
 
                                 <label class="block text-gray-700 font-medium">Forma de Pagamento</label>
@@ -459,6 +473,34 @@
                 </div>
             </div>
 
+    <!-- ABA NOVA: CONFIGURAÇÕES DA LOJA -->
+            <div id="aba-config" class="tab-pane hidden">
+                <div class="max-w-xl mx-auto space-y-8 mt-6">
+                    <div class="bg-white p-6 md:p-8 rounded-lg shadow-md w-full">
+                        <h1 class="text-2xl font-bold mb-6 text-gray-800 text-center">⚙️ Configurações do Sistema</h1>
+                        <form id="configForm" class="space-y-4">
+                            <div class="p-4 bg-gray-50 border rounded-lg">
+                                <h2 class="text-lg font-bold text-gray-800 mb-2">🎁 Programa de Fidelidade (Cashback)</h2>
+                                <p class="text-sm text-gray-600 mb-4">Devolva uma parte do valor das compras aos seus clientes para incentivar o regresso.</p>
+                                
+                                <div class="flex items-center gap-3 mb-4 p-3 bg-white border rounded">
+                                    <input type="checkbox" id="cbxCashback" class="w-5 h-5 text-blue-600 rounded cursor-pointer">
+                                    <label class="font-bold text-gray-800 cursor-pointer" for="cbxCashback">Ativar Cashback nesta loja</label>
+                                </div>
+                                
+                                <div id="divPercentagem">
+                                    <label class="block text-gray-700 font-medium mb-1">Percentagem de Retorno (%)</label>
+                                    <input type="number" step="0.1" id="valCashback" class="w-full border rounded p-3 focus:border-blue-500" placeholder="Ex: 5">
+                                    <p class="text-xs text-gray-500 mt-1">Os clientes identificados com CPF vão ganhar esta percentagem em cada compra.</p>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-3 rounded shadow-md transition-colors mt-4">Guardar Configurações</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
     <!-- CONTENTOR DE NOTIFICAÇÕES (TOASTS) -->
             <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
 
@@ -518,11 +560,14 @@
             const btnRelatorios = document.querySelector('button[onclick*="aba-relatorios"]');
             const btnPdv = document.querySelector('button[onclick*="aba-pdv"]');
 
+            const btnConfig = document.querySelector('button[onclick*="aba-config"]'); // NOVO
+
             if (role === 'operador') {
                 // Oculta completamente as ferramentas gerenciais
                 if (btnProdutos) btnProdutos.style.display = 'none';
                 if (btnEquipe) btnEquipe.style.display = 'none';
                 if (btnRelatorios) btnRelatorios.style.display = 'none';
+                if (btnConfig) btnConfig.style.display = 'none'; // NOVO
                 
                 // Força o operador a ir direto para o PDV
                 if (btnPdv) btnPdv.click();
@@ -531,6 +576,7 @@
                 if (btnProdutos) btnProdutos.style.display = 'block';
                 if (btnEquipe) btnEquipe.style.display = 'block';
                 if (btnRelatorios) btnRelatorios.style.display = 'block';
+                if (btnConfig) btnConfig.style.display = 'block'; // NOVO
             }
         }
          
@@ -611,12 +657,13 @@
             
             if (tabId === 'aba-relatorios') {
                 carregarRelatorio();
-                carregarHistoricoVendas(); // Adicionamos esta linha
-		carregarHistoricoCaixas(); // Carrega a auditoria de caixas
+                carregarHistoricoVendas(); 
+                carregarHistoricoCaixas(); 
             }
             if (tabId === 'aba-produtos') carregarProdutos();
-	    if (tabId === 'aba-equipe') carregarEquipe();
-	    if (tabId === 'aba-clientes') carregarClientes(); 
+            if (tabId === 'aba-equipe') carregarEquipe();
+            if (tabId === 'aba-clientes') carregarClientes(); 
+            if (tabId === 'aba-config') carregarConfiguracoes(); // NOVO 
         }
 
         // 2. PRODUTOS E INVENTÁRIO
@@ -980,29 +1027,63 @@
             }
         }
 
-        // NOVO: Função de busca inteligente enquanto o operador digita
+        // Lógica de Ativação do Cashback
+        let usarCashbackAtivo = false;
+        function toggleUsoCashback() {
+            usarCashbackAtivo = !usarCashbackAtivo;
+            const btn = document.getElementById('btnUsarCashback');
+            if(usarCashbackAtivo) {
+                btn.innerText = "Cancelar Uso";
+                btn.className = "bg-red-500 text-white px-3 py-1 rounded text-sm font-bold shadow hover:bg-red-600 transition-colors";
+                mostrarToast("Saldo aplicado à compra!", "info");
+            } else {
+                btn.innerText = "Usar Saldo";
+                btn.className = "bg-green-600 text-white px-3 py-1 rounded text-sm font-bold shadow hover:bg-green-700 transition-colors";
+            }
+        }
+
+        // NOVO: Função de busca inteligente com Cashback
         function buscarClientePorCPF() {
             const inputCpf = document.getElementById('cpfClientePDV').value.trim();
             const resultado = document.getElementById('resultadoClientePDV');
             const inputId = document.getElementById('idClientePDV');
+            const boxCashback = document.getElementById('boxCashback');
+
+            // Reset inicial
+            usarCashbackAtivo = false;
+            if(document.getElementById('btnUsarCashback')) {
+                document.getElementById('btnUsarCashback').innerText = "Usar Saldo";
+                document.getElementById('btnUsarCashback').className = "bg-green-600 text-white px-3 py-1 rounded text-sm font-bold shadow hover:bg-green-700 transition-colors";
+            }
 
             if (inputCpf.length < 3) {
                 resultado.innerText = "";
                 inputId.value = "";
+                if(boxCashback) boxCashback.classList.add('hidden');
                 return;
             }
 
-            // Procura um cliente que tenha exatamente o documento digitado
             const cliente = clientesCadastrados.find(c => c.document && c.document.includes(inputCpf));
             
             if (cliente) {
                 resultado.innerText = `👤 Cliente reconhecido: ${cliente.name}`;
                 resultado.className = "text-sm mt-1 text-green-600 font-bold min-h-[20px]";
                 inputId.value = cliente.id;
+
+                // Mostra o saldo de cashback se houver
+                const saldo = parseFloat(cliente.cashback_balance || 0);
+                if (saldo > 0 && boxCashback) {
+                    boxCashback.classList.remove('hidden');
+                    document.getElementById('valorCashbackDisponivel').innerText = `R$ ${saldo.toFixed(2).replace('.', ',')}`;
+                    document.getElementById('saldoCashbackPDV').value = saldo;
+                } else if(boxCashback) {
+                    boxCashback.classList.add('hidden');
+                }
             } else {
                 resultado.innerText = "📝 CPF na Nota (Consumidor Final)";
                 resultado.className = "text-sm mt-1 text-gray-500 font-bold min-h-[20px]";
                 inputId.value = "";
+                if(boxCashback) boxCashback.classList.add('hidden');
             }
         }
 
@@ -1174,7 +1255,6 @@
             const formaPag = document.getElementById('formaPagamento');
             const payment_method = formaPag ? formaPag.value : 'pix';
             
-            // NOVO: Captura o cliente inteligente ou apenas o CPF
             const inputCpf = document.getElementById('cpfClientePDV');
             const inputId = document.getElementById('idClientePDV');
             const customer_id = inputId && inputId.value !== "" ? inputId.value : null;
@@ -1186,11 +1266,20 @@
                 if (cliente) customer_name = cliente.name;
             }
 
+            // NOVO: Lógica do Cashback na Venda
+            let cashback_used = 0;
+            if (usarCashbackAtivo) {
+                const saldoMaximo = parseFloat(document.getElementById('saldoCashbackPDV').value) || 0;
+                cashback_used = Math.min(saldoMaximo, total_amount); // Usa apenas o necessário para zerar a conta
+            }
+
+            const valorFinalCobrado = total_amount - cashback_used;
+
             if (payment_method === 'dinheiro') {
                 const valRec = document.getElementById('valorRecebido');
                 const recebido = valRec ? (parseFloat(valRec.value) || 0) : 0;
-                if (recebido < total_amount) {
-                    return mostrarToast("Valor em dinheiro recebido é inferior ao total da venda!", "erro");
+                if (recebido < valorFinalCobrado) {
+                    return mostrarToast(`Falta dinheiro! O total com desconto é R$ ${valorFinalCobrado.toFixed(2)}`, "erro");
                 }
             }
 
@@ -1198,33 +1287,35 @@
                 const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/sales', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ items: carrinhoPDV, payment_method, total_amount, customer_id, customer_document })
+                    body: JSON.stringify({ items: carrinhoPDV, payment_method, total_amount, customer_id, customer_document, cashback_used })
                 });
 
                 if (res.ok) {
+                    const dadosVenda = await res.json();
                     mostrarToast("Venda realizada com sucesso!", "sucesso");
                     
                     if (typeof imprimirRecibo === 'function') {
+                        // Passamos o cashback para o recibo (atualizaremos o recibo mais à frente se quiser)
                         imprimirRecibo(carrinhoPDV, total_amount, payment_method, customer_name, customer_document);
                     }
 
+                    // Reset PDV
                     carrinhoPDV = [];
                     renderizarCarrinhoPDV();
-                    const valRec = document.getElementById('valorRecebido');
-                    if(valRec) valRec.value = '';
+                    const boxCashback = document.getElementById('boxCashback');
+                    if(boxCashback) boxCashback.classList.add('hidden');
+                    usarCashbackAtivo = false;
+                    carregarClientes(); // Recarrega os clientes para atualizar os saldos
                     
-                    // Limpa o campo do cliente
+                    if(document.getElementById('valorRecebido')) document.getElementById('valorRecebido').value = '';
                     if(inputCpf) inputCpf.value = '';
                     if(inputId) inputId.value = '';
-                    const resCli = document.getElementById('resultadoClientePDV');
-                    if(resCli) resCli.innerText = '';
+                    if(document.getElementById('resultadoClientePDV')) document.getElementById('resultadoClientePDV').innerText = '';
                 } else {
                     const errData = await res.json();
                     mostrarToast(errData.error || "Erro ao registar venda", "erro");
                 }
-            } catch (err) {
-                mostrarToast("Erro de conexão ao finalizar venda.", "erro");
-            }
+            } catch (err) { mostrarToast("Erro de conexão ao finalizar venda.", "erro"); }
         }
 
         // IMPRESSÃO DE RECIBO CORRIGIDA E ADAPTADA AO CPF
@@ -1744,6 +1835,39 @@
                 mostrarToast("Erro de conexão ao fechar caixa.", "erro");
             }
         });
+
+// NOVO: Lógica das Configurações
+        async function carregarConfiguracoes() {
+            try {
+                const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/settings');
+                if (res.ok) {
+                    const config = await res.json();
+                    document.getElementById('cbxCashback').checked = config.cashback_enabled;
+                    document.getElementById('valCashback').value = config.cashback_percentage;
+                }
+            } catch (err) {}
+        }
+
+        const configForm = document.getElementById('configForm');
+        if (configForm) {
+            configForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const payload = {
+                    cashback_enabled: document.getElementById('cbxCashback').checked,
+                    cashback_percentage: parseFloat(document.getElementById('valCashback').value) || 0
+                };
+                try {
+                    const res = await fetch('https://meu-pdv-backend-ruvs.onrender.com/api/settings', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (res.ok) mostrarToast("Configurações salvas!", "sucesso");
+                } catch (err) { mostrarToast("Erro ao salvar", "erro"); }
+            });
+        }
+
+HTML
 
     </script>
 </body>
